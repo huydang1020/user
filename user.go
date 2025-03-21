@@ -3,18 +3,58 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/huyshop/header/common"
 	pb "github.com/huyshop/header/user"
+	"github.com/huyshop/user/jwt"
 	"github.com/huyshop/user/utils"
 )
 
 const DEFAULT_LIMIT = 20
 
-func (u *User) SignIn(ctx context.Context, req *pb.User) (*pb.User, error) {
-	return &pb.User{}, nil
+func (u *User) SignIn(ctx context.Context, req *pb.User) (*pb.SignInResponse, error) {
+	if req.GetUsername() == "" {
+		return nil, errors.New(utils.E_not_found_phone_number_or_email)
+	}
+	if req.GetPassword() == "" {
+		return nil, errors.New(utils.E_not_found_password)
+	}
+	user, err := u.Db.GetUser(&pb.UserRequest{PhoneNumber: req.GetUsername()})
+	if err != nil {
+		user, err = u.Db.GetUser(&pb.UserRequest{Email: req.GetUsername()})
+		if err != nil {
+			return nil, errors.New(utils.E_phone_number_or_email_is_incorrect)
+		}
+	}
+	if err := utils.ComparePassword(user.Password, req.Password); err != nil {
+		return nil, errors.New(utils.E_password_is_incorrect)
+	}
+	exprAct, _ := strconv.Atoi(config.JwtExpireAccessToken)
+	exprRft, _ := strconv.Atoi(config.JwtExpireRefreshToken)
+	access_token, err := jwt.GenerateAccessToken(user.GetId(), user.GetRoleId(), time.Duration(exprAct), config.JwtSecretKey)
+	if err != nil {
+		return nil, err
+	}
+	refresh_token, err := jwt.GenerateRefreshToken(user.GetId(), user.GetRoleId(), time.Duration(exprRft), config.JwtSecretKey)
+	if err != nil {
+		return nil, err
+	}
+	c, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	keyRedis := fmt.Sprintf("refresh_token_user_id_%s", user.GetId())
+	if err := u.cache.Set(c, keyRedis, refresh_token, time.Duration(exprRft)*time.Minute).Err(); err != nil {
+		log.Println("set data redis error:", err)
+		return nil, err
+	}
+	user.Password = ""
+	return &pb.SignInResponse{
+		User:        user,
+		AccessToken: access_token,
+	}, nil
 }
 
 func (u *User) CreateUser(ctx context.Context, req *pb.User) (*common.Empty, error) {

@@ -2,7 +2,7 @@ module github.com/huyshop/user
 
 go 1.23.7
 
-replace github.com/huyshop/header v0.0.6 => ../header
+replace github.com/huyshop/header v0.0.7 => ../header
 
 require (
 	github.com/go-sql-driver/mysql v1.9.0
@@ -12,7 +12,11 @@ require (
 )
 
 require (
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
+	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -28,7 +32,7 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/huyshop/header v0.0.7
+	github.com/huyshop/header v0.0.8
 	golang.org/x/net v0.37.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
