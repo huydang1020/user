@@ -2,7 +2,7 @@ module github.com/huyshop/user
 
 go 1.23.7
 
-replace github.com/huyshop/header v0.0.4 => ../header
+replace github.com/huyshop/header v0.0.6 => ../header
 
 require (
 	github.com/go-sql-driver/mysql v1.9.0
@@ -22,12 +22,13 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
+	golang.org/x/crypto v0.36.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250227231956-55c901821b1e // indirect
 )
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/huyshop/header v0.0.6
+	github.com/huyshop/header v0.0.7
 	golang.org/x/net v0.37.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect

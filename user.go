@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/huyshop/header/common"
@@ -16,19 +17,26 @@ func (u *User) SignIn(ctx context.Context, req *pb.User) (*pb.User, error) {
 	return &pb.User{}, nil
 }
 
-func (u *User) CreateUser(ctx context.Context, req *pb.User) (*pb.User, error) {
+func (u *User) CreateUser(ctx context.Context, req *pb.User) (*common.Empty, error) {
 	if u.Db.IsUserExisted(req) {
 		return nil, errors.New(utils.E_user_existed)
 	}
 	if req.RoleId == 0 {
 		return nil, errors.New(utils.E_not_found_role_id)
 	}
+	hashPw, err := utils.HashPassword(req.Password)
+	if err != nil {
+		log.Println("hash pw err:", err)
+		return nil, err
+	}
+	req.Password = hashPw
 	req.Id = utils.MakeUserId()
+	req.State = pb.User_active.String()
 	req.CreatedAt = time.Now().Unix()
 	if err := u.Db.CreateUser(req); err != nil {
 		return nil, err
 	}
-	return req, nil
+	return &common.Empty{}, nil
 }
 
 func (u *User) GetUser(ctx context.Context, req *pb.UserRequest) (*pb.User, error) {
