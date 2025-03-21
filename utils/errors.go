@@ -1,8 +1,8 @@
 package utils
 
 const (
-	// message error
 	E_not_found               = "not_found"
+	E_user_existed            = "user_existed"
 	E_not_found_user_id       = "not_found_user_id"
 	E_internal_error          = "internal errors"
 	E_not_found_id            = "not_found_id"

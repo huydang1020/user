@@ -16,7 +16,15 @@ type User struct {
 	Db IDatabase
 }
 
-type IDatabase interface{}
+type IDatabase interface {
+	ListUsers(rq *pb.UserRequest) ([]*pb.User, error)
+	CountUsers(rq *pb.UserRequest) (int64, error)
+	GetUser(rq *pb.UserRequest) (*pb.User, error)
+	CreateUser(rq *pb.User) error
+	UpdateUser(updator, selector *pb.User) error
+	DeleteUser(id string) error
+	IsUserExisted(u *pb.User) bool
+}
 
 func NewUser(cf *Configs) (*User, error) {
 	dbase := &db.DB{}
