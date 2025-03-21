@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/huyshop/header/common"
 	pb "github.com/huyshop/header/user"
@@ -19,6 +20,11 @@ func (u *User) CreateUser(ctx context.Context, req *pb.User) (*pb.User, error) {
 	if u.Db.IsUserExisted(req) {
 		return nil, errors.New(utils.E_user_existed)
 	}
+	if req.RoleId == 0 {
+		return nil, errors.New(utils.E_not_found_role_id)
+	}
+	req.Id = utils.MakeUserId()
+	req.CreatedAt = time.Now().Unix()
 	if err := u.Db.CreateUser(req); err != nil {
 		return nil, err
 	}
@@ -33,6 +39,7 @@ func (u *User) GetUser(ctx context.Context, req *pb.UserRequest) (*pb.User, erro
 	if err != nil {
 		return nil, err
 	}
+	user.Password = ""
 	return user, nil
 }
 
@@ -57,7 +64,7 @@ func (u *User) ListUsers(ctx context.Context, req *pb.UserRequest) (*pb.Users, e
 	}, nil
 }
 
-func (u *User) UpdateUser(ctx context.Context, req *pb.User) (*pb.User, error) {
+func (u *User) UpdateUser(ctx context.Context, req *pb.User) (*common.Empty, error) {
 	if req.GetId() == "" {
 		return nil, errors.New(utils.E_not_found_user_id)
 	}
@@ -65,10 +72,11 @@ func (u *User) UpdateUser(ctx context.Context, req *pb.User) (*pb.User, error) {
 	if err != nil {
 		return nil, errors.New(utils.E_can_not_update)
 	}
+	req.UpdatedAt = time.Now().Unix()
 	if err := u.Db.UpdateUser(req, &pb.User{Id: req.GetId()}); err != nil {
 		return nil, errors.New(utils.E_can_not_update)
 	}
-	return &pb.User{}, nil
+	return &common.Empty{}, nil
 }
 
 func (u *User) DeleteUser(ctx context.Context, req *pb.User) (*common.Empty, error) {
