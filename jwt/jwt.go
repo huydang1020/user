@@ -11,11 +11,11 @@ import (
 
 type JWTClaim struct {
 	UserId string `json:"user_id"`
-	RoleId int32  `json:"role_id"`
+	RoleId string `json:"role_id"`
 	jwt.StandardClaims
 }
 
-func GenerateAccessToken(user_id string, role_id int32, expireTime time.Duration, secretKey string) (string, error) {
+func GenerateAccessToken(user_id, role_id string, expireTime time.Duration, secretKey string) (string, error) {
 	expirationTime := time.Now().Add(expireTime * time.Minute)
 	claims := &JWTClaim{
 		UserId: user_id,
@@ -33,7 +33,7 @@ func GenerateAccessToken(user_id string, role_id int32, expireTime time.Duration
 	return tokenString, nil
 }
 
-func GenerateRefreshToken(user_id string, role_id int32, expireTime time.Duration, secretKey string) (string, error) {
+func GenerateRefreshToken(user_id, role_id string, expireTime time.Duration, secretKey string) (string, error) {
 	expirationTime := time.Now().Add(expireTime * time.Minute)
 	claims := &JWTClaim{
 		UserId: user_id,

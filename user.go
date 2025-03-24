@@ -61,7 +61,7 @@ func (u *User) CreateUser(ctx context.Context, req *pb.User) (*common.Empty, err
 	if u.Db.IsUserExisted(req) {
 		return nil, errors.New(utils.E_user_existed)
 	}
-	if req.RoleId == 0 {
+	if req.RoleId == "" {
 		return nil, errors.New(utils.E_not_found_role_id)
 	}
 	hashPw, err := utils.HashPassword(req.Password)
