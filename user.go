@@ -140,3 +140,11 @@ func (u *User) DeleteUser(ctx context.Context, req *pb.User) (*common.Empty, err
 	}
 	return &common.Empty{}, nil
 }
+
+func (u *User) CreateNewUser(ctx context.Context, req *pb.User) (*pb.User, error) {
+	if err := u.Db.TranCreateNewUser(req); err != nil {
+		return nil, err
+	}
+	req.Password = ""
+	return req, nil
+}

@@ -9,6 +9,10 @@ func MakeUserId() string {
 	return "user" + xid.New().String()
 }
 
+func MakePointExchange() string {
+	return "pex" + xid.New().String()
+}
+
 func HashPassword(password string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), 10)
 	if err != nil {

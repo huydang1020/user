@@ -9,7 +9,9 @@ import (
 )
 
 const (
-	tblUser = "user"
+	tblUser          = "user"
+	tblUserPoint     = "user_point"
+	tblPointExchange = "point_exchange"
 )
 
 func createTable(model interface{}, tblName string, engine *xorm.Engine) error {
@@ -35,6 +37,12 @@ func createTable(model interface{}, tblName string, engine *xorm.Engine) error {
 
 func (d *DB) CreateDb() error {
 	if err := createTable(&pb.User{}, tblUser, d.engine); err != nil {
+		return err
+	}
+	if err := createTable(&pb.UserPoint{}, tblUserPoint, d.engine); err != nil {
+		return err
+	}
+	if err := createTable(&pb.PointExchange{}, tblPointExchange, d.engine); err != nil {
 		return err
 	}
 	return nil

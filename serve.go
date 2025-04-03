@@ -28,6 +28,18 @@ type IDatabase interface {
 	UpdateUser(updator, selector *pb.User) error
 	DeleteUser(id string) error
 	IsUserExisted(u *pb.User) bool
+
+	CreateUserPoint(req *pb.UserPoint) error
+	UpdateUserPoint(updator, selector *pb.UserPoint) error
+	DeleteUserPoint(id string) error
+	IsExistUserPoint(id string) bool
+	ListUserPoint(rq *pb.UserPointRequest) ([]*pb.UserPoint, error)
+	GetUserPoint(rq *pb.UserPoint) (*pb.UserPoint, error)
+	TranCreateNewUser(user *pb.User) error
+
+	CreatePointExchange(req *pb.PointExchange) error
+	GetPointExchange(req *pb.PointExchange) (*pb.PointExchange, error)
+	ListPointExchange(req *pb.PointExchangeRequest) ([]*pb.PointExchange, error)
 }
 
 func NewRedisCache(addr, pw string, db int) *redis.Client {
