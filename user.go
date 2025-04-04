@@ -18,7 +18,7 @@ const DEFAULT_LIMIT = 20
 
 func (u *User) SignIn(ctx context.Context, req *pb.User) (*pb.SignInResponse, error) {
 	if req.GetUsername() == "" {
-		return nil, errors.New(utils.E_not_found_phone_number_or_email)
+		return nil, errors.New(utils.E_not_found_username)
 	}
 	if req.GetPassword() == "" {
 		return nil, errors.New(utils.E_not_found_password)
@@ -27,7 +27,10 @@ func (u *User) SignIn(ctx context.Context, req *pb.User) (*pb.SignInResponse, er
 	if err != nil {
 		user, err = u.Db.GetUser(&pb.UserRequest{Email: req.GetUsername()})
 		if err != nil {
-			return nil, errors.New(utils.E_phone_number_or_email_is_incorrect)
+			user, err = u.Db.GetUser(&pb.UserRequest{Username: req.GetUsername()})
+			if err != nil {
+				return nil, errors.New(utils.E_not_found_username)
+			}
 		}
 	}
 	if err := utils.ComparePassword(user.Password, req.Password); err != nil {
