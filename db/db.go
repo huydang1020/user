@@ -84,6 +84,7 @@ func (d *DB) GetUser(rq *pb.UserRequest) (*pb.User, error) {
 		Id:          rq.GetId(),
 		PhoneNumber: rq.GetPhoneNumber(),
 		Email:       rq.GetEmail(),
+		Username:    rq.GetUsername(),
 	}
 	ishas, err := d.engine.Get(user)
 	if err != nil {
