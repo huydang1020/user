@@ -24,6 +24,8 @@ type Configs struct {
 	RedisAddr             string
 	RedisPassword         string
 	RedisDb               string
+	MailKey               string
+	MailUrl               string
 }
 
 var config *Configs
@@ -44,6 +46,8 @@ func init() {
 		RedisAddr:             os.Getenv("REDIS_ADDR"),
 		RedisPassword:         os.Getenv("REDIS_PASSWORD"),
 		RedisDb:               os.Getenv("REDIS_DB"),
+		MailKey:               os.Getenv("MAIL_API_KEY"),
+		MailUrl:               os.Getenv("MAIL_URL"),
 	}
 }
 

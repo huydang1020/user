@@ -54,6 +54,11 @@ func (u *User) SignIn(ctx context.Context, req *pb.User) (*pb.SignInResponse, er
 		return nil, err
 	}
 	user.Password = ""
+	// err = utils.SendEmail(config.MailKey, config.MailUrl, "dangquanghuy@media-one.vn", "Huy Shop - Verify Email", fmt.Sprintf("Your account:<br>Username: %s<br>Password: %s", req.GetUsername(), req.GetPassword()))
+	// if err != nil {
+	// 	log.Println("send email error:", err)
+	// 	return nil, err
+	// }
 	return &pb.SignInResponse{
 		User:        user,
 		AccessToken: access_token,
