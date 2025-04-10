@@ -66,7 +66,7 @@ func (u *User) SignIn(ctx context.Context, req *pb.User) (*pb.SignInResponse, er
 }
 
 func (u *User) CreateUser(ctx context.Context, req *pb.User) (*common.Empty, error) {
-	if u.Db.IsUserExisted(req) {
+	if u.Db.IsUserExisted(&pb.User{Username: req.GetUsername(), PhoneNumber: req.GetPhoneNumber(), Email: req.GetEmail()}) {
 		return nil, errors.New(utils.E_user_existed)
 	}
 	if req.RoleId == "" {

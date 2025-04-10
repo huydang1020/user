@@ -2,14 +2,10 @@ package utils
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
-	"mime/multipart"
 	"net/http"
 
-	"github.com/cloudinary/cloudinary-go"
-	"github.com/cloudinary/cloudinary-go/api/uploader"
 	"github.com/rs/xid"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -71,21 +67,4 @@ func SendEmail(apiKey, url, to, subject, content string) error {
 
 	fmt.Println("Status:", resp.Status)
 	return nil
-}
-
-func UploadImageToCloudinary(file multipart.File, filePath, cldName, cldKey, cldSecret string) (string, error) {
-	cld, err := cloudinary.NewFromParams(cldName, cldKey, cldSecret)
-	if err != nil {
-		return "", err
-	}
-	uploadParams := uploader.UploadParams{
-		PublicID: filePath,
-	}
-	ctx := context.Background()
-	result, err := cld.Upload.Upload(ctx, file, uploadParams)
-	if err != nil {
-		return "", err
-	}
-	imageUrl := result.SecureURL
-	return imageUrl, nil
 }
