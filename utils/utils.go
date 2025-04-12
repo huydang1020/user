@@ -18,6 +18,14 @@ func MakePointExchange() string {
 	return "pex" + xid.New().String()
 }
 
+func MakeStoreId() string {
+	return "sto" + xid.New().String()
+}
+
+func MakePartnerId() string {
+	return "par" + xid.New().String()
+}
+
 func HashPassword(password string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), 10)
 	if err != nil {

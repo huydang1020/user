@@ -366,3 +366,190 @@ func (d *DB) TranCreatePointExchange(req *pb.PointExchange) error {
 	}
 	return nil
 }
+
+func (d *DB) CreateStore(store *pb.Store) error {
+	c, err := d.engine.Insert(store)
+	if err != nil {
+		return err
+	}
+	if c == 0 {
+		return errors.New(utils.E_can_not_insert)
+	}
+	return nil
+}
+
+func (d *DB) UpdateStore(updator, selector *pb.Store) error {
+	_, err := d.engine.Update(updator, selector)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *DB) DeleteStore(id string) error {
+	if id == "" {
+		return errors.New(utils.E_not_found_id)
+	}
+	_, err := d.engine.Table(tblStore).Delete(&pb.Store{Id: id})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *DB) CountStore(rq *pb.StoreRequest) (int64, error) {
+	ss := d.listStoreQuery(rq)
+	return ss.Count()
+}
+
+func (d *DB) listStoreQuery(rq *pb.StoreRequest) *xorm.Session {
+	ss := d.engine.Table(tblStore)
+	if len(rq.GetIds()) > 0 {
+		ss.In("id", rq.GetIds())
+	} else if rq.GetId() != "" {
+		ss.And("id = ?", rq.GetId())
+	}
+	if rq.GetName() != "" {
+		ss.And("name like ?", "%"+rq.GetName()+"%")
+	}
+	if rq.GetState() != "" {
+		ss.And("state = ?", rq.GetState())
+	}
+	if rq.GetProvice() != "" {
+		ss.And("provice = ?", rq.GetProvice())
+	}
+	if rq.GetDistrict() != "" {
+		ss.And("district = ?", rq.GetDistrict())
+	}
+	if rq.GetWard() != "" {
+		ss.And("ward = ?", rq.GetWard())
+	}
+	if rq.GetAddress() != "" {
+		ss.And("address like ?", "%"+rq.GetAddress()+"%")
+	}
+	return ss
+}
+
+func (d *DB) ListStore(rq *pb.StoreRequest) ([]*pb.Store, error) {
+	ss := d.listStoreQuery(rq)
+	if rq.GetLimit() != 0 {
+		ss.Limit(int(rq.GetLimit()), int(rq.GetSkip()*rq.GetLimit()))
+	}
+	stores := make([]*pb.Store, 0)
+	err := ss.Desc("created_at").Find(&stores)
+	if err != nil {
+		return nil, err
+	}
+	return stores, nil
+}
+
+func (d *DB) GetStore(rq *pb.StoreRequest) (*pb.Store, error) {
+	store := &pb.Store{
+		Id: rq.GetId(),
+	}
+	ishas, err := d.engine.Get(store)
+	if err != nil {
+		return nil, err
+	}
+	if !ishas {
+		return nil, errors.New(utils.E_not_found)
+	}
+	return store, nil
+}
+
+func (d *DB) IsStoreExisted(u *pb.Store) bool {
+	any, err := d.engine.Exist(u)
+	if err != nil {
+		return false
+	}
+	return any
+}
+
+func (d *DB) CreatePartner(partner *pb.Partner) error {
+	c, err := d.engine.Insert(partner)
+	if err != nil {
+		return err
+	}
+	if c == 0 {
+		return errors.New(utils.E_can_not_insert)
+	}
+	return nil
+}
+
+func (d *DB) UpdatePartner(updator, selector *pb.Partner) error {
+	_, err := d.engine.Update(updator, selector)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *DB) DeletePartner(id string) error {
+	if id == "" {
+		return errors.New(utils.E_not_found_id)
+	}
+	_, err := d.engine.Table(tblPartner).Delete(&pb.Partner{Id: id})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *DB) CountPartner(rq *pb.PartnerRequest) (int64, error) {
+	ss := d.listPartnerQuery(rq)
+	return ss.Count()
+}
+
+func (d *DB) listPartnerQuery(rq *pb.PartnerRequest) *xorm.Session {
+	ss := d.engine.Table(tblPartner)
+	if len(rq.GetIds()) > 0 {
+		ss.In("id", rq.GetIds())
+	} else if rq.GetId() != "" {
+		ss.And("id = ?", rq.GetId())
+	}
+	if rq.GetName() != "" {
+		ss.And("name like ?", "%"+rq.GetName()+"%")
+	}
+	if rq.GetState() != "" {
+		ss.And("state = ?", rq.GetState())
+	}
+	if rq.GetAddress() != "" {
+		ss.And("address like ?", "%"+rq.GetAddress()+"%")
+	}
+	return ss
+}
+
+func (d *DB) ListPartner(rq *pb.PartnerRequest) ([]*pb.Partner, error) {
+	ss := d.listPartnerQuery(rq)
+	if rq.GetLimit() != 0 {
+		ss.Limit(int(rq.GetLimit()), int(rq.GetSkip()*rq.GetLimit()))
+	}
+	partners := make([]*pb.Partner, 0)
+	err := ss.Desc("created_at").Find(&partners)
+	if err != nil {
+		return nil, err
+	}
+	return partners, nil
+}
+
+func (d *DB) GetPartner(rq *pb.PartnerRequest) (*pb.Partner, error) {
+	partner := &pb.Partner{
+		Id: rq.GetId(),
+	}
+	ishas, err := d.engine.Get(partner)
+	if err != nil {
+		return nil, err
+	}
+	if !ishas {
+		return nil, errors.New(utils.E_not_found)
+	}
+	return partner, nil
+}
+
+func (d *DB) IsPartnerExisted(u *pb.Partner) bool {
+	any, err := d.engine.Exist(u)
+	if err != nil {
+		return false
+	}
+	return any
+}

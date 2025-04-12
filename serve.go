@@ -40,6 +40,20 @@ type IDatabase interface {
 	CreatePointExchange(req *pb.PointExchange) error
 	GetPointExchange(req *pb.PointExchange) (*pb.PointExchange, error)
 	ListPointExchange(req *pb.PointExchangeRequest) ([]*pb.PointExchange, error)
+
+	CreateStore(store *pb.Store) error
+	UpdateStore(updator, selector *pb.Store) error
+	DeleteStore(id string) error
+	GetStore(rq *pb.StoreRequest) (*pb.Store, error)
+	ListStore(rq *pb.StoreRequest) ([]*pb.Store, error)
+	CountStore(rq *pb.StoreRequest) (int64, error)
+
+	CreatePartner(partner *pb.Partner) error
+	UpdatePartner(updator, selector *pb.Partner) error
+	DeletePartner(id string) error
+	GetPartner(rq *pb.PartnerRequest) (*pb.Partner, error)
+	ListPartner(rq *pb.PartnerRequest) ([]*pb.Partner, error)
+	CountPartner(rq *pb.PartnerRequest) (int64, error)
 }
 
 func NewRedisCache(addr, pw string, db int) *redis.Client {

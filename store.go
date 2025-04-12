@@ -1,0 +1,78 @@
+package main
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	"github.com/huyshop/header/common"
+	pb "github.com/huyshop/header/user"
+	"github.com/huyshop/user/utils"
+)
+
+func (u *User) CreateStore(ctx context.Context, store *pb.Store) (*common.Empty, error) {
+	if store.GetName() == "" {
+		return nil, errors.New(utils.E_not_found_name)
+	}
+	if store.GetAddress() == "" {
+		return nil, errors.New(utils.E_not_found_address)
+	}
+	if store.GetProvice() == "" {
+		return nil, errors.New(utils.E_not_found_provice)
+	}
+	if store.GetDistrict() == "" {
+		return nil, errors.New(utils.E_not_found_district)
+	}
+	if store.GetWard() == "" {
+		return nil, errors.New(utils.E_not_found_ward)
+	}
+	store.CreatedAt = time.Now().Unix()
+	store.Id = utils.MakeStoreId()
+	if store.GetState() == "" {
+		store.State = pb.Store_active.String()
+	}
+	if err := u.Db.CreateStore(store); err != nil {
+		return nil, err
+	}
+	return &common.Empty{}, nil
+}
+
+func (u *User) UpdateStore(ctx context.Context, req *pb.Store) (*common.Empty, error) {
+	if req.GetId() == "" {
+		return nil, errors.New(utils.E_not_found_id)
+	}
+	if err := u.Db.UpdateStore(req, &pb.Store{Id: req.GetId()}); err != nil {
+		return nil, err
+	}
+	return &common.Empty{}, nil
+}
+
+func (u *User) DeleteStore(ctx context.Context, req *pb.Store) (*common.Empty, error) {
+	if req.GetId() == "" {
+		return nil, errors.New(utils.E_not_found_id)
+	}
+	if err := u.Db.DeleteStore(req.GetId()); err != nil {
+		return nil, err
+	}
+	return &common.Empty{}, nil
+}
+
+func (u *User) ListStore(ctx context.Context, rq *pb.StoreRequest) (*pb.Stores, error) {
+	list, err := u.Db.ListStore(rq)
+	if err != nil {
+		return nil, err
+	}
+	count, err := u.Db.CountStore(rq)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.Stores{Stores: list, Total: int32(count)}, nil
+}
+
+func (u *User) GetStore(ctx context.Context, rq *pb.StoreRequest) (*pb.Store, error) {
+	store, err := u.Db.GetStore(rq)
+	if err != nil {
+		return nil, err
+	}
+	return store, nil
+}
