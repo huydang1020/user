@@ -151,6 +151,7 @@ func (d *DB) IsUserExisted(u *pb.User) bool {
 }
 
 func (d *DB) CreateUser(user *pb.User) error {
+	log.Println("create user:", user)
 	c, err := d.engine.Insert(user)
 	if err != nil {
 		return err
@@ -426,6 +427,11 @@ func (d *DB) listStoreQuery(rq *pb.StoreRequest) *xorm.Session {
 	}
 	if rq.GetAddress() != "" {
 		ss.And("address like ?", "%"+rq.GetAddress()+"%")
+	}
+	if len(rq.GetPartnerIds()) > 0 {
+		ss.In("partner_id", rq.GetPartnerIds())
+	} else if rq.GetPartnerId() != "" {
+		ss.And("partner_id = ?", rq.GetPartnerId())
 	}
 	return ss
 }

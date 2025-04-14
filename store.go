@@ -62,6 +62,13 @@ func (u *User) ListStore(ctx context.Context, rq *pb.StoreRequest) (*pb.Stores, 
 	if err != nil {
 		return nil, err
 	}
+	for _, l := range list {
+		pa, err := u.Db.GetPartner(&pb.PartnerRequest{Id: l.GetPartnerId()})
+		if err != nil {
+			return nil, err
+		}
+		l.Partner = pa
+	}
 	count, err := u.Db.CountStore(rq)
 	if err != nil {
 		return nil, err

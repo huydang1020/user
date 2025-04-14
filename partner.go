@@ -50,6 +50,15 @@ func (u *User) ListPartner(ctx context.Context, rq *pb.PartnerRequest) (*pb.Part
 	if err != nil {
 		return nil, err
 	}
+	for _, p := range list {
+		if p.GetUserId() != "" {
+			user, err := u.Db.GetUser(&pb.UserRequest{Id: p.GetUserId()})
+			if err != nil {
+				return nil, err
+			}
+			p.User = user
+		}
+	}
 	count, err := u.Db.CountPartner(rq)
 	if err != nil {
 		return nil, err
