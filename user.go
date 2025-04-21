@@ -65,6 +65,17 @@ func (u *User) SignIn(ctx context.Context, req *pb.User) (*pb.SignInResponse, er
 	}, nil
 }
 
+func (u *User) SignOut(ctx context.Context, req *pb.User) (*common.Empty, error) {
+	if req.GetId() == "" {
+		return nil, errors.New(utils.E_not_found_user_id)
+	}
+	if err := u.cache.Del(ctx, fmt.Sprintf("refresh_token_user_id_%s", req.GetId())).Err(); err != nil {
+		log.Println("delete data redis error:", err)
+		return nil, err
+	}
+	return &common.Empty{}, nil
+}
+
 func (u *User) CreateUser(ctx context.Context, req *pb.User) (*common.Empty, error) {
 	// if u.Db.IsUserExisted(&pb.User{Username: req.GetUsername(), PhoneNumber: req.GetPhoneNumber(), Email: req.GetEmail()}) {
 	// 	return nil, errors.New(utils.E_user_existed)
