@@ -66,9 +66,9 @@ func (u *User) SignIn(ctx context.Context, req *pb.User) (*pb.SignInResponse, er
 }
 
 func (u *User) CreateUser(ctx context.Context, req *pb.User) (*common.Empty, error) {
-	if u.Db.IsUserExisted(&pb.User{Username: req.GetUsername(), PhoneNumber: req.GetPhoneNumber(), Email: req.GetEmail()}) {
-		return nil, errors.New(utils.E_user_existed)
-	}
+	// if u.Db.IsUserExisted(&pb.User{Username: req.GetUsername(), PhoneNumber: req.GetPhoneNumber(), Email: req.GetEmail()}) {
+	// 	return nil, errors.New(utils.E_user_existed)
+	// }
 	if req.RoleId == "" {
 		return nil, errors.New(utils.E_not_found_role_id)
 	}
@@ -155,4 +155,9 @@ func (u *User) CreateNewUser(ctx context.Context, req *pb.User) (*pb.User, error
 	}
 	req.Password = ""
 	return req, nil
+}
+
+func (u *User) IsExistUser(ctx context.Context, req *pb.User) (*common.IsExist, error) {
+	c := u.Db.IsUserExisted(req)
+	return &common.IsExist{Exist: c}, nil
 }
