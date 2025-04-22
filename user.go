@@ -36,13 +36,17 @@ func (u *User) SignIn(ctx context.Context, req *pb.User) (*pb.SignInResponse, er
 	if err := utils.ComparePassword(user.Password, req.Password); err != nil {
 		return nil, errors.New(utils.E_password_is_incorrect)
 	}
-	exprAct, _ := strconv.Atoi(config.JwtExpireAccessToken)
-	exprRft, _ := strconv.Atoi(config.JwtExpireRefreshToken)
-	access_token, err := jwt.GenerateAccessToken(user.GetId(), user.GetRoleId(), time.Duration(exprAct), config.JwtSecretKey)
+	partner, err := u.Db.GetPartner(&pb.PartnerRequest{Id: user.GetPartnerId()})
 	if err != nil {
 		return nil, err
 	}
-	refresh_token, err := jwt.GenerateRefreshToken(user.GetId(), user.GetRoleId(), time.Duration(exprRft), config.JwtSecretKey)
+	exprAct, _ := strconv.Atoi(config.JwtExpireAccessToken)
+	exprRft, _ := strconv.Atoi(config.JwtExpireRefreshToken)
+	access_token, err := jwt.GenerateAccessToken(user, partner, time.Duration(exprAct), config.JwtSecretKey)
+	if err != nil {
+		return nil, err
+	}
+	refresh_token, err := jwt.GenerateRefreshToken(user, partner, time.Duration(exprRft), config.JwtSecretKey)
 	if err != nil {
 		return nil, err
 	}

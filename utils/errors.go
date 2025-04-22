@@ -20,7 +20,7 @@ const (
 	E_not_found_password    = "not_found_password"
 	E_not_found_name        = "not_found_name"
 	E_not_found_address     = "not_found_address"
-	E_not_found_provice     = "not_found_provice"
+	E_not_found_province    = "not_found_province"
 	E_not_found_district    = "not_found_district"
 	E_not_found_ward        = "not_found_ward"
 )

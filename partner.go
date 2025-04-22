@@ -29,6 +29,7 @@ func (u *User) UpdatePartner(ctx context.Context, req *pb.Partner) (*common.Empt
 	if req.GetId() == "" {
 		return nil, errors.New(utils.E_not_found_id)
 	}
+	req.UpdatedAt = time.Now().Unix()
 	if err := u.Db.UpdatePartner(req, &pb.Partner{Id: req.GetId()}); err != nil {
 		return nil, err
 	}
@@ -49,15 +50,6 @@ func (u *User) ListPartner(ctx context.Context, rq *pb.PartnerRequest) (*pb.Part
 	list, err := u.Db.ListPartner(rq)
 	if err != nil {
 		return nil, err
-	}
-	for _, p := range list {
-		if p.GetUserId() != "" {
-			user, err := u.Db.GetUser(&pb.UserRequest{Id: p.GetUserId()})
-			if err != nil {
-				return nil, err
-			}
-			p.User = user
-		}
 	}
 	count, err := u.Db.CountPartner(rq)
 	if err != nil {

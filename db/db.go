@@ -413,11 +413,14 @@ func (d *DB) listStoreQuery(rq *pb.StoreRequest) *xorm.Session {
 	if rq.GetName() != "" {
 		ss.And("name like ?", "%"+rq.GetName()+"%")
 	}
+	if rq.GetPhoneNumber() != "" {
+		ss.And("phone_number = ?", rq.GetPhoneNumber())
+	}
 	if rq.GetState() != "" {
 		ss.And("state = ?", rq.GetState())
 	}
-	if rq.GetProvice() != "" {
-		ss.And("provice = ?", rq.GetProvice())
+	if rq.GetProvince() != "" {
+		ss.And("province = ?", rq.GetProvince())
 	}
 	if rq.GetDistrict() != "" {
 		ss.And("district = ?", rq.GetDistrict())
@@ -516,11 +519,11 @@ func (d *DB) listPartnerQuery(rq *pb.PartnerRequest) *xorm.Session {
 	if rq.GetName() != "" {
 		ss.And("name like ?", "%"+rq.GetName()+"%")
 	}
+	if rq.GetType() != "" {
+		ss.And("type = ?", rq.GetType())
+	}
 	if rq.GetState() != "" {
 		ss.And("state = ?", rq.GetState())
-	}
-	if rq.GetAddress() != "" {
-		ss.And("address like ?", "%"+rq.GetAddress()+"%")
 	}
 	return ss
 }

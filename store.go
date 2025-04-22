@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/huyshop/header/common"
@@ -17,8 +18,8 @@ func (u *User) CreateStore(ctx context.Context, store *pb.Store) (*common.Empty,
 	if store.GetAddress() == "" {
 		return nil, errors.New(utils.E_not_found_address)
 	}
-	if store.GetProvice() == "" {
-		return nil, errors.New(utils.E_not_found_provice)
+	if store.GetProvince() == "" {
+		return nil, errors.New(utils.E_not_found_province)
 	}
 	if store.GetDistrict() == "" {
 		return nil, errors.New(utils.E_not_found_district)
@@ -26,11 +27,9 @@ func (u *User) CreateStore(ctx context.Context, store *pb.Store) (*common.Empty,
 	if store.GetWard() == "" {
 		return nil, errors.New(utils.E_not_found_ward)
 	}
-	store.CreatedAt = time.Now().Unix()
 	store.Id = utils.MakeStoreId()
-	if store.GetState() == "" {
-		store.State = pb.Store_active.String()
-	}
+	store.State = pb.Store_active.String()
+	store.CreatedAt = time.Now().Unix()
 	if err := u.Db.CreateStore(store); err != nil {
 		return nil, err
 	}
@@ -41,6 +40,7 @@ func (u *User) UpdateStore(ctx context.Context, req *pb.Store) (*common.Empty, e
 	if req.GetId() == "" {
 		return nil, errors.New(utils.E_not_found_id)
 	}
+	req.UpdatedAt = time.Now().Unix()
 	if err := u.Db.UpdateStore(req, &pb.Store{Id: req.GetId()}); err != nil {
 		return nil, err
 	}
@@ -65,7 +65,8 @@ func (u *User) ListStore(ctx context.Context, rq *pb.StoreRequest) (*pb.Stores, 
 	for _, l := range list {
 		pa, err := u.Db.GetPartner(&pb.PartnerRequest{Id: l.GetPartnerId()})
 		if err != nil {
-			return nil, err
+			log.Println("GetPartner", err)
+			continue
 		}
 		l.Partner = pa
 	}
