@@ -52,12 +52,26 @@ func init() {
 }
 
 func startApp(ctx *cli.Context) error {
-	v, err := NewUser(config)
+	u, err := NewUser(config)
 	if err != nil {
 		log.Fatal(err)
 		return err
 	}
-	if err := startGRPCServe(config.GRPCPort, v); err != nil {
+
+	go func() {
+		for {
+			select {
+			case user := <-u.SendEmail:
+				err := u.CheckAndSendEmailVerifyOtp(user)
+				if err != nil {
+					log.Println("Error sending email:", err)
+				}
+			}
+
+		}
+	}()
+
+	if err := startGRPCServe(config.GRPCPort, u); err != nil {
 		debug.PrintStack()
 		return err
 	}

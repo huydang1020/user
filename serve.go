@@ -16,8 +16,9 @@ import (
 )
 
 type User struct {
-	Db    IDatabase
-	cache *redis.Client
+	Db        IDatabase
+	cache     *redis.Client
+	SendEmail chan *pb.User
 }
 
 type IDatabase interface {
@@ -87,8 +88,9 @@ func NewUser(cf *Configs) (*User, error) {
 	rd := NewRedisCache(config.RedisAddr, config.RedisPassword, redisDb)
 	log.Println("Connect redis successful")
 	return &User{
-		Db:    dbase,
-		cache: rd,
+		Db:        dbase,
+		cache:     rd,
+		SendEmail: make(chan *pb.User, 100),
 	}, nil
 }
 

@@ -223,7 +223,6 @@ func (u *User) SignInCustomer(ctx context.Context, req *pb.User) (*pb.SignInResp
 }
 
 func (u *User) CreateCustomer(ctx context.Context, req *pb.User) (*common.Empty, error) {
-	update := false
 	if u.Db.IsUserExisted(&pb.User{PhoneNumber: req.GetPhoneNumber(), Email: req.GetEmail()}) {
 		user, err := u.Db.GetUser(&pb.UserRequest{PhoneNumber: req.GetPhoneNumber()})
 		if err != nil {
@@ -236,43 +235,24 @@ func (u *User) CreateCustomer(ctx context.Context, req *pb.User) (*common.Empty,
 		if user.GetState() == pb.User_active.String() {
 			return nil, errors.New(utils.E_user_existed)
 		} else if user.GetState() == pb.User_inactive.String() {
-			update = true
-			req.Id = user.GetId()
+			u.SendEmail <- req
+			return &common.Empty{}, nil
 		}
-	}
-	if req.RoleId == "" {
-		return nil, errors.New(utils.E_not_found_role_id)
 	}
 	hashPw, err := utils.HashPassword(req.Password)
 	if err != nil {
 		log.Println("hash pw err:", err)
 		return nil, err
 	}
-	code := utils.GenerateVerifyCode()
-	err = utils.SendEmail(config.MailKey, config.MailUrl, req.GetEmail(), "Huy Shop - Verify Email", code)
-	if err != nil {
-		log.Println("send email error:", err)
-		return nil, err
-	}
-	keyRedis := fmt.Sprintf("verify_email:%s", req.GetEmail())
-	if err := u.cache.Set(ctx, keyRedis, code, time.Duration(5)*time.Minute).Err(); err != nil {
-		log.Println("set data redis error:", err)
-		return nil, err
-	}
 	req.Password = hashPw
 	req.State = pb.User_inactive.String()
-	if update {
-		req.UpdatedAt = time.Now().Unix()
-		if err := u.Db.UpdateUser(req, &pb.User{Id: req.GetId()}); err != nil {
-			return nil, errors.New(utils.E_can_not_update)
-		}
-		return &common.Empty{}, nil
-	}
 	req.Id = utils.MakeUserId()
 	req.CreatedAt = time.Now().Unix()
 	if err := u.Db.CreateUser(req); err != nil {
 		return nil, err
 	}
+	u.SendEmail <- req
+	log.Println("123")
 	return &common.Empty{}, nil
 }
 
@@ -280,21 +260,21 @@ func (u *User) VerifyEmail(ctx context.Context, req *pb.User) (*common.Empty, er
 	if req.GetEmail() == "" {
 		return nil, errors.New(utils.E_invalid_email)
 	}
-	if req.GetVerifyCode() == "" {
-		return nil, errors.New(utils.E_invalid_code)
+	if req.GetVerifyOtp() == "" {
+		return nil, errors.New(utils.E_invalid_otp)
 	}
 	c, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	keyRedis := fmt.Sprintf("verify_email:%s", req.GetEmail())
-	code, err := u.cache.Get(c, keyRedis).Result()
+	otp, err := u.cache.Get(c, keyRedis).Result()
 	if err == redis.Nil {
-		return nil, errors.New(utils.E_verify_code_is_expired)
+		return nil, errors.New(utils.E_verify_otp_is_expired)
 	} else if err != nil {
 		log.Println("Redis error:", err)
 		return nil, errors.New(utils.E_internal_error)
 	}
-	if code != req.GetVerifyCode() {
-		return nil, errors.New(utils.E_verify_code_incorrect)
+	if otp != req.GetVerifyOtp() {
+		return nil, errors.New(utils.E_verify_otp_incorrect)
 	}
 	user, err := u.Db.GetUser(&pb.UserRequest{Email: req.GetEmail()})
 	if err != nil {
@@ -309,22 +289,50 @@ func (u *User) VerifyEmail(ctx context.Context, req *pb.User) (*common.Empty, er
 	return &common.Empty{}, nil
 }
 
-func (u *User) SendVerifyCode(ctx context.Context, req *pb.User) (*common.Empty, error) {
+func (u *User) SendVerifyOtp(ctx context.Context, req *pb.User) (*common.Empty, error) {
 	if req.GetEmail() == "" {
 		return nil, errors.New(utils.E_invalid_email)
 	}
-	code := utils.GenerateVerifyCode()
+	otp := utils.GenerateVerifyOtp()
 	c, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	keyRedis := fmt.Sprintf("verify_email:%s", req.GetEmail())
-	if err := u.cache.Set(c, keyRedis, code, 5*time.Minute).Err(); err != nil {
+	if err := u.cache.Set(c, keyRedis, otp, 5*time.Minute).Err(); err != nil {
 		log.Println("set data redis error:", err)
 		return nil, err
 	}
-	err := utils.SendEmail(config.MailKey, config.MailUrl, req.GetEmail(), "Huy Shop - Verify Email", code)
+	err := utils.SendEmail(config.MailKey, config.MailUrl, req.GetEmail(), "Huy Shop - Verify Email", otp)
 	if err != nil {
 		log.Println("send email error:", err)
 		return nil, err
 	}
 	return &common.Empty{}, nil
+}
+
+func (u *User) CheckAndSendEmailVerifyOtp(req *pb.User) error {
+	if req.GetEmail() == "" {
+		return errors.New(utils.E_invalid_email)
+	}
+	keyRedis := fmt.Sprintf("verify_email:%s", req.GetEmail())
+
+	c, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err := u.cache.Get(c, keyRedis).Result()
+	if err == redis.Nil {
+		log.Println("otp not found in redis, sending new otp")
+		code := utils.GenerateVerifyOtp()
+		err = utils.SendEmail(config.MailKey, config.MailUrl, req.GetEmail(), "Huy Shop - Verify Email", code)
+		if err != nil {
+			log.Println("send email error:", err)
+			return err
+		}
+		if err := u.cache.Set(c, keyRedis, code, time.Duration(5)*time.Minute).Err(); err != nil {
+			log.Println("set data redis error:", err)
+			return err
+		}
+	} else if err != nil {
+		log.Println("Redis error:", err)
+		return errors.New(utils.E_internal_error)
+	}
+	return nil
 }

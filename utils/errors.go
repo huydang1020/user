@@ -25,10 +25,10 @@ const (
 	E_not_found_ward         = "not_found_ward"
 	E_invalid_phone_number   = "invalid_phone_number"
 	E_invalid_email          = "invalid_email"
-	E_invalid_code           = "invalid_code"
+	E_invalid_otp           = "invalid_otp"
 	E_invalid_password       = "invalid_password"
 	E_invalid_username       = "invalid_username"
-	E_verify_code_is_expired = "verify_code_is_expired"
-	E_verify_code_incorrect  = "verify_code_incorrect"
+	E_verify_otp_is_expired = "verify_otp_is_expired"
+	E_verify_otp_incorrect  = "verify_otp_incorrect"
 	E_not_found_user         = "not_found_user"
 )

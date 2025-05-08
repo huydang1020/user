@@ -41,7 +41,7 @@ func ComparePassword(hash, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 }
 
-func GenerateVerifyCode() string {
+func GenerateVerifyOtp() string {
 	code := ""
 	for i := 0; i < 6; i++ {
 		n, err := rand.Int(rand.Reader, big.NewInt(10)) // số từ 0-9
