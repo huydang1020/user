@@ -2,7 +2,7 @@ module github.com/huyshop/user
 
 go 1.23.7
 
-replace github.com/huyshop/header v0.0.32 => ../header
+replace github.com/huyshop/header v0.0.33 => ../header
 
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -32,7 +32,7 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/huyshop/header v0.0.33
+	github.com/huyshop/header v0.0.43
 	golang.org/x/net v0.37.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect

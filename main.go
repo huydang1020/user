@@ -46,8 +46,8 @@ func init() {
 		RedisAddr:             os.Getenv("REDIS_ADDR"),
 		RedisPassword:         os.Getenv("REDIS_PASSWORD"),
 		RedisDb:               os.Getenv("REDIS_DB"),
-		MailKey:               os.Getenv("MAIL_API_KEY"),
-		MailUrl:               os.Getenv("MAIL_URL"),
+		MailKey:               os.Getenv("BREVO_API_KEY"),
+		MailUrl:               os.Getenv("BREVO_URL"),
 	}
 }
 
