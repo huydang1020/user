@@ -45,10 +45,12 @@ func (u *User) SignIn(ctx context.Context, req *pb.User) (*pb.SignInResponse, er
 	exprRft, _ := strconv.Atoi(config.JwtExpireRefreshToken)
 	access_token, err := jwt.GenerateAccessToken(user, partner, time.Duration(exprAct), config.JwtSecretKey)
 	if err != nil {
+		log.Println("generate access token error:", err)
 		return nil, err
 	}
 	refresh_token, err := jwt.GenerateRefreshToken(user, partner, time.Duration(exprRft), config.JwtSecretKey)
 	if err != nil {
+		log.Println("generate refresh token error:", err)
 		return nil, err
 	}
 	c, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -98,6 +100,7 @@ func (u *User) CreateUser(ctx context.Context, req *pb.User) (*common.Empty, err
 	req.State = pb.User_active.String()
 	req.CreatedAt = time.Now().Unix()
 	if err := u.Db.CreateUser(req); err != nil {
+		log.Println("create user err:", err)
 		return nil, err
 	}
 	return &common.Empty{}, nil
@@ -109,6 +112,7 @@ func (u *User) GetUser(ctx context.Context, req *pb.UserRequest) (*pb.User, erro
 	}
 	user, err := u.Db.GetUser(req)
 	if err != nil {
+		log.Println("get user error:", err)
 		return nil, err
 	}
 	user.Password = ""
@@ -196,16 +200,18 @@ func (u *User) SignInCustomer(ctx context.Context, req *pb.User) (*pb.SignInResp
 		return nil, errors.New(utils.E_password_is_incorrect)
 	}
 	if user.GetState() == pb.User_inactive.String() {
-		return nil, errors.New(utils.E_user_not_existed)
+		return nil, errors.New(utils.E_account_not_activated)
 	}
 	exprAct, _ := strconv.Atoi(config.JwtExpireAccessToken)
 	exprRft, _ := strconv.Atoi(config.JwtExpireRefreshToken)
 	access_token, err := jwt.GenerateAccessToken(user, &pb.Partner{}, time.Duration(exprAct), config.JwtSecretKey)
 	if err != nil {
+		log.Println("generate access token error:", err)
 		return nil, err
 	}
 	refresh_token, err := jwt.GenerateRefreshToken(user, &pb.Partner{}, time.Duration(exprRft), config.JwtSecretKey)
 	if err != nil {
+		log.Println("generate refresh token error:", err)
 		return nil, err
 	}
 	c, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -249,6 +255,7 @@ func (u *User) CreateCustomer(ctx context.Context, req *pb.User) (*common.Empty,
 	req.Id = utils.MakeUserId()
 	req.CreatedAt = time.Now().Unix()
 	if err := u.Db.CreateUser(req); err != nil {
+		log.Println("create user err:", err)
 		return nil, err
 	}
 	u.SendEmail <- req
