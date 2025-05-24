@@ -32,4 +32,5 @@ const (
 	E_verify_otp_incorrect  = "verify_otp_incorrect"
 	E_not_found_user        = "not_found_user"
 	E_account_not_activated = "account_not_activated"
+	E_email_activated       = "email_activated"
 )

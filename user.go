@@ -286,6 +286,9 @@ func (u *User) VerifyEmail(ctx context.Context, req *pb.User) (*common.Empty, er
 	if req.GetVerifyOtp() == "" {
 		return nil, errors.New(utils.E_invalid_otp)
 	}
+	if u.Db.IsUserExisted(&pb.User{State: pb.User_active.String(), Email: req.GetEmail()}) {
+		return nil, errors.New(utils.E_email_activated)
+	}
 	c, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	keyRedis := fmt.Sprintf("verify_email:%s", req.GetEmail())
@@ -320,6 +323,9 @@ func (u *User) VerifyEmail(ctx context.Context, req *pb.User) (*common.Empty, er
 func (u *User) SendVerifyOtp(ctx context.Context, req *pb.User) (*common.TTL, error) {
 	if req.GetEmail() == "" {
 		return nil, errors.New(utils.E_invalid_email)
+	}
+	if u.Db.IsUserExisted(&pb.User{State: pb.User_active.String(), Email: req.GetEmail()}) {
+		return nil, errors.New(utils.E_email_activated)
 	}
 	keyRedis := fmt.Sprintf("verify_email:%s", req.GetEmail())
 	c, cancel := context.WithTimeout(context.Background(), 5*time.Second)
