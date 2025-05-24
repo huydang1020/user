@@ -257,7 +257,7 @@ func (u *User) CreateCustomer(ctx context.Context, req *pb.User) (*common.Empty,
 		if user.GetState() == pb.User_active.String() {
 			return nil, errors.New(utils.E_user_existed)
 		} else if user.GetState() == pb.User_inactive.String() {
-			u.SendEmail <- req
+			// u.SendEmail <- req
 			return &common.Empty{}, nil
 		}
 	}
@@ -274,7 +274,7 @@ func (u *User) CreateCustomer(ctx context.Context, req *pb.User) (*common.Empty,
 		log.Println("create user err:", err)
 		return nil, err
 	}
-	u.SendEmail <- req
+	// u.SendEmail <- req
 	log.Println("123")
 	return &common.Empty{}, nil
 }
