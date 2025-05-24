@@ -116,6 +116,14 @@ func (u *User) GetUser(ctx context.Context, req *pb.UserRequest) (*pb.User, erro
 		return nil, err
 	}
 	user.Password = ""
+	up, err := u.Db.GetUserPoint(&pb.UserPoint{UserId: user.GetId()})
+	if err != nil {
+		log.Println("get user point error:", err)
+		return nil, err
+	}
+	user.Point = &pb.UserPoint{
+		Points: up.Points,
+	}
 	return user, nil
 }
 
@@ -222,6 +230,14 @@ func (u *User) SignInCustomer(ctx context.Context, req *pb.User) (*pb.SignInResp
 		return nil, err
 	}
 	user.Password = ""
+	up, err := u.GetUserPoint(ctx, &pb.UserPointRequest{Id: user.GetId()})
+	if err != nil {
+		log.Println("get user point error:", err)
+		return nil, err
+	}
+	user.Point = &pb.UserPoint{
+		Points: up.Points,
+	}
 	return &pb.SignInResponse{
 		User:        user,
 		AccessToken: access_token,
@@ -292,28 +308,47 @@ func (u *User) VerifyEmail(ctx context.Context, req *pb.User) (*common.Empty, er
 	if err := u.Db.UpdateUser(user, &pb.User{Id: user.GetId()}); err != nil {
 		return nil, errors.New(utils.E_can_not_update)
 	}
+	err = u.Db.CreateUserPoint(&pb.UserPoint{UserId: user.GetId(), CreatedAt: time.Now().Unix()})
+	if err != nil {
+		log.Println("create user point error:", err)
+		return nil, errors.New(utils.E_can_not_insert)
+	}
 	_ = u.cache.Del(c, keyRedis).Err()
 	return &common.Empty{}, nil
 }
 
-func (u *User) SendVerifyOtp(ctx context.Context, req *pb.User) (*common.Empty, error) {
+func (u *User) SendVerifyOtp(ctx context.Context, req *pb.User) (*common.TTL, error) {
 	if req.GetEmail() == "" {
 		return nil, errors.New(utils.E_invalid_email)
 	}
-	otp := utils.GenerateVerifyOtp()
+	keyRedis := fmt.Sprintf("verify_email:%s", req.GetEmail())
 	c, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	keyRedis := fmt.Sprintf("verify_email:%s", req.GetEmail())
-	if err := u.cache.Set(c, keyRedis, otp, 5*time.Minute).Err(); err != nil {
-		log.Println("set data redis error:", err)
-		return nil, err
+	_, err := u.cache.Get(c, keyRedis).Result()
+	if err == redis.Nil {
+		log.Println("otp not found in redis, sending new otp")
+		code := utils.GenerateVerifyOtp()
+		err = utils.SendEmail(config.MailKey, config.MailUrl, req.GetEmail(), "Huy Shop - Verify Email", code)
+		if err != nil {
+			log.Println("send email error:", err)
+			return nil, err
+		}
+		if err := u.cache.Set(c, keyRedis, code, time.Duration(5)*time.Minute).Err(); err != nil {
+			log.Println("set data redis error:", err)
+			return nil, err
+		}
+	} else if err != nil {
+		log.Println("Redis error:", err)
+		return nil, errors.New(utils.E_internal_error)
 	}
-	err := utils.SendEmail(config.MailKey, config.MailUrl, req.GetEmail(), "Huy Shop - Verify Email", otp)
+	ttl, err := u.cache.TTL(ctx, keyRedis).Result()
 	if err != nil {
-		log.Println("send email error:", err)
-		return nil, err
+		log.Println("err", err)
+		return nil, errors.New(utils.E_internal_error)
 	}
-	return &common.Empty{}, nil
+	return &common.TTL{
+		Ttl: int64(ttl.Seconds()),
+	}, nil
 }
 
 func (u *User) CheckAndSendEmailVerifyOtp(req *pb.User) error {

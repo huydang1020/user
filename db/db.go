@@ -238,13 +238,9 @@ func (d *DB) DeleteUserPoint(id string) error {
 	return nil
 }
 
-func (d *DB) IsExistUserPoint(id string) bool {
-	ss := d.engine.Where("id = ?", id).Table(tblUserPoint)
-	any, err := ss.Exist()
-	if err != nil {
-		return false
-	}
-	return any
+func (d *DB) IsExistUserPoint(id string) (bool, error) {
+	ss := d.engine.Where("user_id = ?", id).Table(tblUserPoint)
+	return ss.Exist()
 }
 
 func (d *DB) listUserPointQuery(rq *pb.UserPointRequest) *xorm.Session {

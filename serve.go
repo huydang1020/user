@@ -33,7 +33,7 @@ type IDatabase interface {
 	CreateUserPoint(req *pb.UserPoint) error
 	UpdateUserPoint(updator, selector *pb.UserPoint) error
 	DeleteUserPoint(id string) error
-	IsExistUserPoint(id string) bool
+	IsExistUserPoint(id string) (bool, error)
 	ListUserPoint(rq *pb.UserPointRequest) ([]*pb.UserPoint, error)
 	GetUserPoint(rq *pb.UserPoint) (*pb.UserPoint, error)
 	TranCreateNewUser(user *pb.User) error
