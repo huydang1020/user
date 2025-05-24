@@ -298,7 +298,7 @@ func (u *User) VerifyEmail(ctx context.Context, req *pb.User) (*common.Empty, er
 	keyRedis := fmt.Sprintf("verify_email:%s", req.GetEmail())
 	otp, err := u.cache.Get(c, keyRedis).Result()
 	if err == redis.Nil {
-		return nil, errors.New(utils.E_verify_otp_is_expired)
+		return nil, errors.New(utils.E_verify_otp_incorrect)
 	} else if err != nil {
 		log.Println("Redis error:", err)
 		return nil, errors.New(utils.E_internal_error)

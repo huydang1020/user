@@ -28,7 +28,6 @@ const (
 	E_invalid_otp           = "invalid_otp"
 	E_invalid_password      = "invalid_password"
 	E_invalid_username      = "invalid_username"
-	E_verify_otp_is_expired = "verify_otp_is_expired"
 	E_verify_otp_incorrect  = "verify_otp_incorrect"
 	E_not_found_user        = "not_found_user"
 	E_account_not_activated = "account_not_activated"
