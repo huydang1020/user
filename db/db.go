@@ -558,3 +558,120 @@ func (d *DB) IsPartnerExisted(u *pb.Partner) bool {
 	}
 	return any
 }
+
+func (d *DB) CreatePartnerRegistration(req *pb.PartnerRegistration) error {
+	c, err := d.engine.Insert(req)
+	if err != nil {
+		return err
+	}
+	if c == 0 {
+		return errors.New(utils.E_can_not_insert)
+	}
+	return nil
+}
+
+func (d *DB) UpdatePartnerRegistration(updator, selector *pb.PartnerRegistration) error {
+	c, err := d.engine.Update(updator, selector)
+	if err != nil {
+		return err
+	}
+	if c == 0 {
+		return errors.New(utils.E_can_not_update)
+	}
+	return nil
+}
+
+func (d *DB) DeletePartnerRegistration(req *pb.PartnerRegistration) error {
+
+	_, err := d.engine.Table(tblPartnerRegistration).Delete(&pb.PartnerRegistration{UserId: req.UserId, PartnerId: req.PartnerId})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *DB) GetPartnerRegistration(req *pb.PartnerRegistrationRequest) (*pb.PartnerRegistration, error) {
+	if req.GetUserId() == "" {
+		return nil, errors.New(utils.E_not_found_user_id)
+	}
+	if req.GetPartnerId() == "" {
+		return nil, errors.New(utils.E_not_found_id)
+	}
+	resp := &pb.PartnerRegistration{
+		UserId:    req.GetUserId(),
+		PartnerId: req.GetPartnerId(),
+	}
+	ishas, err := d.engine.Get(resp)
+	if err != nil {
+		return nil, err
+	}
+	if !ishas {
+		return nil, errors.New(utils.E_not_found)
+	}
+	return resp, nil
+}
+
+func (d *DB) listPartnerRegistrationQuery(rq *pb.PartnerRegistrationRequest) *xorm.Session {
+	ss := d.engine.Table(tblPartnerRegistration)
+	if len(rq.GetUserIds()) > 0 {
+		ss.In("user_id", rq.GetUserIds())
+	} else if rq.GetUserId() != "" {
+		ss.And("user_id = ?", rq.GetUserId())
+	}
+	if len(rq.GetPartnerIds()) > 0 {
+		ss.In("partner_id", rq.GetPartnerIds())
+	} else if rq.GetPartnerId() != "" {
+		ss.And("partner_id = ?", rq.GetPartnerId())
+	}
+	if rq.GetState() != "" {
+		ss.And("state = ?", rq.GetState())
+	}
+	return ss
+}
+
+func (d *DB) ListPartnerRegistration(rq *pb.PartnerRegistrationRequest) ([]*pb.PartnerRegistration, error) {
+	regs := make([]*pb.PartnerRegistration, 0)
+	ss := d.listPartnerRegistrationQuery(rq)
+	if rq.GetLimit() != 0 {
+		ss.Limit(int(rq.GetLimit()), int(rq.GetSkip()*rq.GetLimit()))
+	}
+	err := ss.Desc("created_at").Find(&regs)
+	if err != nil {
+		return nil, err
+	}
+	return regs, nil
+}
+
+func (d *DB) CountPartnerRegistration(rq *pb.PartnerRegistrationRequest) (int64, error) {
+	ss := d.listPartnerRegistrationQuery(rq)
+	return ss.Count()
+}
+
+func (d *DB) IsPartnerRegistrationExisted(req *pb.PartnerRegistration) bool {
+	any, err := d.engine.Exist(req)
+	if err != nil {
+		log.Println("IsPartnerRegistrationExisted error:", err)
+		return false
+	}
+	return any
+}
+
+func (d *DB) TranCreatePartnerRegistration(req *pb.PartnerRegistration) error {
+	ss := d.engine.NewSession()
+	defer ss.Close()
+	if err := ss.Begin(); err != nil {
+		return err
+	}
+	if d.IsPartnerRegistrationExisted(req) {
+		ss.Rollback()
+		return errors.New(utils.E_user_existed)
+	}
+	if _, err := ss.Insert(req); err != nil {
+		ss.Rollback()
+		return err
+	}
+	if err := ss.Commit(); err != nil {
+		return err
+	}
+	return nil
+}

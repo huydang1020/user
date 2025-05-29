@@ -18,6 +18,7 @@ type Configs struct {
 	GRPCPort              string
 	DBPath                string
 	DBName                string
+	HttpPort              string
 	JwtSecretKey          string
 	JwtExpireAccessToken  string
 	JwtExpireRefreshToken string
@@ -40,6 +41,7 @@ func init() {
 		GRPCPort:              os.Getenv("GRPC_PORT"),
 		DBPath:                os.Getenv("DB_PATH"),
 		DBName:                os.Getenv("DB_NAME"),
+		HttpPort:              os.Getenv("HTTP_PORT"),
 		JwtSecretKey:          os.Getenv("JWT_SECRET_KEY"),
 		JwtExpireAccessToken:  os.Getenv("JWT_EXPIRE_ACCESS_TOKEN"),
 		JwtExpireRefreshToken: os.Getenv("JWT_EXPIRE_REFRESH_TOKEN"),
@@ -70,7 +72,11 @@ func startApp(ctx *cli.Context) error {
 
 		}
 	}()
-
+	go func() {
+		if err := HTTPServe(u); err != nil {
+			log.Print(err)
+		}
+	}()
 	if err := startGRPCServe(config.GRPCPort, u); err != nil {
 		debug.PrintStack()
 		return err

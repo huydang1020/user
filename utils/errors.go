@@ -6,6 +6,7 @@ const (
 	E_user_not_existed      = "user_not_existed"
 	E_not_found_user_id     = "not_found_user_id"
 	E_internal_error        = "internal errors"
+	E_internal_server_error = "internal_server_errors"
 	E_not_found_id          = "not_found_id"
 	E_invalid_state         = "invalid_state"
 	E_can_not_insert        = "can_not_insert"
@@ -32,4 +33,8 @@ const (
 	E_not_found_user        = "not_found_user"
 	E_account_not_activated = "account_not_activated"
 	E_email_activated       = "email_activated"
+	E_invalid_address       = "invalid_address"
+	E_invalid_fullname      = "invalid_fullname"
+	E_invalid_user_id       = "invalid_user_id"
+	E_invalid_partner_id    = "invalid_partner_id"
 )

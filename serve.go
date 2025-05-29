@@ -7,9 +7,11 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 	pb "github.com/huyshop/header/user"
 	"github.com/huyshop/user/db"
+	"github.com/huyshop/user/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
@@ -55,6 +57,14 @@ type IDatabase interface {
 	GetPartner(rq *pb.PartnerRequest) (*pb.Partner, error)
 	ListPartner(rq *pb.PartnerRequest) ([]*pb.Partner, error)
 	CountPartner(rq *pb.PartnerRequest) (int64, error)
+
+	CreatePartnerRegistration(req *pb.PartnerRegistration) error
+	UpdatePartnerRegistration(updator, selector *pb.PartnerRegistration) error
+	DeletePartnerRegistration(rq *pb.PartnerRegistration) error
+	GetPartnerRegistration(rq *pb.PartnerRegistrationRequest) (*pb.PartnerRegistration, error)
+	ListPartnerRegistration(rq *pb.PartnerRegistrationRequest) ([]*pb.PartnerRegistration, error)
+	CountPartnerRegistration(rq *pb.PartnerRegistrationRequest) (int64, error)
+	IsPartnerRegistrationExisted(req *pb.PartnerRegistration) bool
 }
 
 func NewRedisCache(addr, pw string, db int) *redis.Client {
@@ -108,4 +118,45 @@ func startGRPCServe(port string, p *User) error {
 	pb.RegisterUserServiceServer(serve, p)
 	reflection.Register(serve)
 	return serve.Serve(listen)
+}
+
+func HTTPServe(p *User) error {
+	g := gin.New()
+	g.Use(gin.Recovery(), gin.Logger())
+	g.POST("/", func(c *gin.Context) {
+		c.JSON(200, "product service")
+	})
+	r1 := g.Group("/v1")
+
+	r1.GET("/partners", func(c *gin.Context) {
+		req := &pb.PartnerRequest{}
+		if err := c.BindQuery(req); err != nil {
+			c.JSON(400, gin.H{"error": "Invalid request"})
+			return
+		}
+		list, err := p.Db.ListPartner(req)
+		if err != nil {
+			c.JSON(500, gin.H{"error": utils.E_internal_error})
+			return
+		}
+		c.JSON(200, list)
+
+	})
+
+	r1.GET("/stores", func(c *gin.Context) {
+		req := &pb.StoreRequest{}
+		if err := c.BindQuery(req); err != nil {
+			c.JSON(400, gin.H{"error": "Invalid request"})
+			return
+		}
+		list, err := p.Db.ListStore(req)
+		if err != nil {
+			c.JSON(500, gin.H{"error": utils.E_internal_error})
+			return
+		}
+		c.JSON(200, list)
+	})
+
+	g.Run(":" + config.HttpPort)
+	return nil
 }
