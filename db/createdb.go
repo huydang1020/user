@@ -9,12 +9,13 @@ import (
 )
 
 const (
-	tblUser                = "user"
-	tblUserPoint           = "user_point"
-	tblPointExchange       = "point_exchange"
-	tblStore               = "store"
-	tblPartner             = "partner"
-	tblPartnerRegistration = "partner_registration"
+	tblUser                   = "user"
+	tblUserPoint              = "user_point"
+	tblPointExchange          = "point_exchange"
+	tblStore                  = "store"
+	tblPartner                = "partner"
+	tblPartnerRegistration    = "partner_registration"
+	tblShippingAddressMapping = "shipping_address_mapping"
 )
 
 func createTable(model interface{}, tblName string, engine *xorm.Engine) error {

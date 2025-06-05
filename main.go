@@ -72,11 +72,11 @@ func startApp(ctx *cli.Context) error {
 
 		}
 	}()
-	go func() {
-		if err := HTTPServe(u); err != nil {
-			log.Print(err)
-		}
-	}()
+	// go func() {
+	// 	if err := HTTPServe(u); err != nil {
+	// 		log.Print(err)
+	// 	}
+	// }()
 	if err := startGRPCServe(config.GRPCPort, u); err != nil {
 		debug.PrintStack()
 		return err

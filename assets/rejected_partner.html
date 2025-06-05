@@ -1,0 +1,116 @@
+<html>
+  <head>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+      }
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        background: linear-gradient(135deg, #f28f8f 0%, #eb7448 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+        border-radius: 10px 10px 0 0;
+      }
+      .content {
+        background: #f8f9fa;
+        padding: 30px;
+        border-radius: 0 0 10px 10px;
+      }
+      .reject-badge {
+        background: #eb606e;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 25px;
+        display: inline-block;
+        margin: 20px 0;
+      }
+      .button {
+        background: #6faced;
+        color: white;
+        padding: 15px 30px;
+        text-decoration: none;
+        border-radius: 5px;
+        display: inline-block;
+        margin: 20px 0;
+      }
+      .footer {
+        text-align: center;
+        margin-top: 30px;
+        color: #666;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>📧 Thông báo từ Huy Shop</h1>
+      </div>
+      <div class="content">
+        <div class="reject-badge">❌ KHÔNG ĐƯỢC DUYỆT</div>
+
+        <h2>Xin chào {{fullname}}!</h2>
+
+        <p>Cảm ơn bạn đã quan tâm và gửi đơn đăng ký bán hàng trên Huy Shop.</p>
+
+        <p>
+          Rất tiếc, sau khi xem xét kỹ lưỡng, chúng tôi chưa thể phê duyệt đơn
+          đăng ký của bạn vào thời điểm này.
+        </p>
+
+        <div
+          style="
+            background: #fff3cd;
+            padding: 20px;
+            border-left: 4px solid #ffc107;
+            margin: 20px 0;
+          "
+        >
+          <h3 style="margin-top: 0; color: #856404">
+            📋 Lý do không được duyệt:
+          </h3>
+          <p style="color: #856404; font-weight: 500">{{reason_reject}}</p>
+        </div>
+
+        <h3>🔄 Bạn có thể làm gì tiếp theo?</h3>
+        <ul>
+          <li>Xem lại và bổ sung thông tin thiếu</li>
+          <li>Chuẩn bị đầy đủ giấy tờ pháp lý</li>
+          <li>Đảm bảo thông tin chính xác và đầy đủ</li>
+          <li>Gửi lại đơn đăng ký sau khi hoàn thiện</li>
+        </ul>
+
+        <a href="#" class="button">📝 Đăng ký lại</a>
+
+        <div
+          style="
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+          "
+        >
+          <p>
+            <strong>💬 Cần hỗ trợ?</strong> Đội ngũ của chúng tôi sẵn sàng hỗ
+            trợ bạn hoàn thiện hồ sơ để có thể tham gia bán hàng!
+          </p>
+        </div>
+      </div>
+      <div class="footer">
+        <p>Chúng tôi mong được hợp tác với bạn trong tương lai!</p>
+        <p>
+          Liên hệ hỗ trợ:
+          <a href="mailto:support@huyshop.com">support@huyshop.com</a> |
+          Hotline: 1900-xxxx
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,6 +1,7 @@
 package db
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -582,8 +583,7 @@ func (d *DB) UpdatePartnerRegistration(updator, selector *pb.PartnerRegistration
 }
 
 func (d *DB) DeletePartnerRegistration(req *pb.PartnerRegistration) error {
-
-	_, err := d.engine.Table(tblPartnerRegistration).Delete(&pb.PartnerRegistration{UserId: req.UserId, PartnerId: req.PartnerId})
+	_, err := d.engine.Table(tblPartnerRegistration).Delete(&pb.PartnerRegistration{Id: req.GetId()})
 	if err != nil {
 		return err
 	}
@@ -591,22 +591,14 @@ func (d *DB) DeletePartnerRegistration(req *pb.PartnerRegistration) error {
 }
 
 func (d *DB) GetPartnerRegistration(req *pb.PartnerRegistrationRequest) (*pb.PartnerRegistration, error) {
-	if req.GetUserId() == "" {
-		return nil, errors.New(utils.E_not_found_user_id)
-	}
-	if req.GetPartnerId() == "" {
-		return nil, errors.New(utils.E_not_found_id)
-	}
 	resp := &pb.PartnerRegistration{
-		UserId:    req.GetUserId(),
-		PartnerId: req.GetPartnerId(),
+		Id:     req.GetId(),
+		UserId: req.GetUserId(),
+		State:  req.GetState(),
 	}
-	ishas, err := d.engine.Get(resp)
+	_, err := d.engine.Get(resp)
 	if err != nil {
 		return nil, err
-	}
-	if !ishas {
-		return nil, errors.New(utils.E_not_found)
 	}
 	return resp, nil
 }
@@ -617,11 +609,6 @@ func (d *DB) listPartnerRegistrationQuery(rq *pb.PartnerRegistrationRequest) *xo
 		ss.In("user_id", rq.GetUserIds())
 	} else if rq.GetUserId() != "" {
 		ss.And("user_id = ?", rq.GetUserId())
-	}
-	if len(rq.GetPartnerIds()) > 0 {
-		ss.In("partner_id", rq.GetPartnerIds())
-	} else if rq.GetPartnerId() != "" {
-		ss.And("partner_id = ?", rq.GetPartnerId())
 	}
 	if rq.GetState() != "" {
 		ss.And("state = ?", rq.GetState())
@@ -648,7 +635,9 @@ func (d *DB) CountPartnerRegistration(rq *pb.PartnerRegistrationRequest) (int64,
 }
 
 func (d *DB) IsPartnerRegistrationExisted(req *pb.PartnerRegistration) bool {
-	any, err := d.engine.Exist(req)
+	any, err := d.engine.Exist(&pb.PartnerRegistration{
+		UserId: req.GetUserId(),
+	})
 	if err != nil {
 		log.Println("IsPartnerRegistrationExisted error:", err)
 		return false
@@ -656,19 +645,62 @@ func (d *DB) IsPartnerRegistrationExisted(req *pb.PartnerRegistration) bool {
 	return any
 }
 
-func (d *DB) TranCreatePartnerRegistration(req *pb.PartnerRegistration) error {
+func (d *DB) TranApprovePartnerRegistration(req *pb.PartnerRegistration) error {
 	ss := d.engine.NewSession()
 	defer ss.Close()
 	if err := ss.Begin(); err != nil {
 		return err
 	}
-	if d.IsPartnerRegistrationExisted(req) {
+	user, err := d.GetUser(&pb.UserRequest{Id: req.GetUserId()})
+	if user == nil || err != nil {
+		log.Println("Error:", err)
 		ss.Rollback()
-		return errors.New(utils.E_user_existed)
+		return errors.New(utils.E_not_found_user_id)
 	}
-	if _, err := ss.Insert(req); err != nil {
+	// update state of partner registration
+	if _, err := ss.Update(req, &pb.PartnerRegistration{Id: req.GetId()}); err != nil {
 		ss.Rollback()
 		return err
+	}
+	// create new partner
+	partner := &pb.Partner{
+		Id:        utils.MakePartnerId(),
+		Name:      user.GetFullName(),
+		Type:      "seller",
+		State:     pb.Partner_active.String(),
+		CreatedAt: time.Now().Unix(),
+	}
+	if _, err := d.engine.Insert(partner); err != nil {
+		ss.Rollback()
+		log.Println("Error:", err)
+		return errors.New(utils.E_can_not_insert_partner)
+	}
+	// update role of user
+	if _, err := ss.Update(&pb.User{
+		Id:        req.GetUserId(),
+		RoleId:    "roled0vspl69ipf5ueqvq6v0",
+		PartnerId: partner.GetId(),
+		UpdatedAt: time.Now().Unix(),
+	}, &pb.User{Id: req.GetUserId()}); err != nil {
+		ss.Rollback()
+		return err
+	}
+
+	// create store for partner
+	store := &pb.Store{}
+	if err := json.Unmarshal([]byte(req.GetStore()), store); err != nil {
+		ss.Rollback()
+		log.Println("Error:", err)
+		return errors.New(utils.E_invalid_store)
+	}
+	store.Id = utils.MakeStoreId()
+	store.PartnerId = partner.GetId()
+	store.CreatedAt = time.Now().Unix()
+	store.State = pb.Store_active.String()
+	if _, err := ss.Insert(store); err != nil {
+		ss.Rollback()
+		log.Println("Error:", err)
+		return errors.New(utils.E_can_not_insert_store)
 	}
 	if err := ss.Commit(); err != nil {
 		return err

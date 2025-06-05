@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Xác nhận email của bạn</title>
+    <!--[if mso]>
+      <noscript>
+        <xml>
+          <o:OfficeDocumentSettings>
+            <o:AllowPNG />
+            <o:PixelsPerInch>96</o:PixelsPerInch>
+          </o:OfficeDocumentSettings>
+        </xml>
+      </noscript>
+    <![endif]-->
+    <style>
+      /* Reset styles */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body,
+      table,
+      td,
+      p,
+      a,
+      li,
+      blockquote {
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+      }
+
+      table,
+      td {
+        mso-table-lspace: 0pt;
+        mso-table-rspace: 0pt;
+      }
+
+      img {
+        -ms-interpolation-mode: bicubic;
+      }
+
+      /* Main styles */
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100% !important;
+        min-width: 100%;
+        height: 100%;
+        background-color: #f4f4f4;
+        font-family: Arial, sans-serif;
+      }
+
+      .email-wrapper {
+        width: 100%;
+        background-color: #f4f4f4;
+        padding: 20px 0;
+      }
+
+      .email-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Header */
+      .header {
+        background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+        padding: 40px 30px;
+        text-align: center;
+      }
+
+      .logo-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+
+      .logo {
+        width: 32px;
+        height: 32px;
+        background: linear-gradient(135deg, #2563eb 0%, #9333ea 100%);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .logo-text {
+        color: #ffffff;
+        font-weight: bold;
+        font-size: 18px;
+      }
+
+      .brand-name {
+        font-weight: bold;
+        font-size: 20px;
+        background: linear-gradient(90deg, #2563eb 0%, #9333ea 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        color: transparent;
+      }
+
+      .header h1 {
+        color: #ffffff;
+        font-size: 28px;
+        font-weight: bold;
+        margin: 0 0 8px 0;
+        line-height: 1.2;
+      }
+
+      .header p {
+        color: #ffffff;
+        font-size: 16px;
+        margin: 0;
+        opacity: 0.9;
+      }
+
+      /* Content */
+      .content {
+        padding: 40px 30px;
+      }
+
+      .greeting {
+        font-size: 24px;
+        color: #1f2937;
+        margin-bottom: 16px;
+        font-weight: bold;
+        text-align: center;
+      }
+
+      .message {
+        font-size: 16px;
+        color: #6b7280;
+        line-height: 1.6;
+        margin-bottom: 30px;
+        text-align: center;
+      }
+
+      /* Verification Code Section */
+      .verification-section {
+        text-align: center;
+        margin: 30px 0;
+      }
+
+      .code-container {
+        background-color: #f8fafc;
+        border: 2px dashed #cbd5e1;
+        border-radius: 12px;
+        padding: 30px 20px;
+        margin: 20px 0;
+        display: inline-block;
+        min-width: 280px;
+      }
+
+      .code-label {
+        font-size: 14px;
+        color: #64748b;
+        margin-bottom: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: bold;
+      }
+
+      .verification-code {
+        font-size: 36px;
+        font-weight: bold;
+        color: #1e293b;
+        letter-spacing: 6px;
+        font-family: "Courier New", Consolas, monospace;
+        margin: 10px 0;
+        padding: 15px;
+        background-color: #ffffff;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+      }
+
+      .code-hint {
+        font-size: 12px;
+        color: #64748b;
+        margin-top: 10px;
+        font-style: italic;
+      }
+
+      /* Instructions */
+      .instructions {
+        background-color: #fef3c7;
+        border-left: 4px solid #f59e0b;
+        padding: 20px;
+        margin: 30px 0;
+        border-radius: 0 8px 8px 0;
+      }
+
+      .instructions h3 {
+        color: #92400e;
+        font-size: 16px;
+        margin-bottom: 8px;
+        font-weight: bold;
+      }
+
+      .instructions p {
+        color: #b45309;
+        font-size: 14px;
+        line-height: 1.5;
+        margin: 0;
+      }
+
+      /* Action Button */
+      .action-button {
+        text-align: center;
+        margin: 30px 0;
+      }
+
+      .btn {
+        display: inline-block;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: #ffffff !important;
+        text-decoration: none;
+        padding: 15px 30px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        border: none;
+      }
+
+      .btn:hover {
+        opacity: 0.9;
+      }
+
+      /* Expiry Notice */
+      .expire-notice {
+        background-color: #fee2e2;
+        color: #dc2626;
+        padding: 15px;
+        border-radius: 8px;
+        font-size: 14px;
+        margin: 20px 0;
+        text-align: center;
+        border: 1px solid #fecaca;
+      }
+
+      /* Footer */
+      .footer {
+        background-color: #f9fafb;
+        padding: 30px;
+        text-align: center;
+        border-top: 1px solid #e5e7eb;
+      }
+
+      .company-info {
+        margin-bottom: 20px;
+      }
+
+      .company-name {
+        font-size: 16px;
+        color: #1f2937;
+        font-weight: bold;
+        margin-bottom: 8px;
+      }
+
+      .company-details {
+        font-size: 14px;
+        color: #6b7280;
+        line-height: 1.6;
+      }
+
+      .social-links {
+        margin: 20px 0;
+      }
+
+      .social-link {
+        display: inline-block;
+        width: 40px;
+        height: 40px;
+        background-color: #e5e7eb;
+        border-radius: 50%;
+        margin: 0 5px;
+        text-decoration: none;
+        line-height: 40px;
+        color: #6b7280;
+        font-weight: bold;
+      }
+
+      .copyright {
+        font-size: 12px;
+        color: #9ca3af;
+        margin-top: 20px;
+      }
+
+      /* Mobile Responsive */
+      @media only screen and (max-width: 600px) {
+        .email-wrapper {
+          padding: 10px 0;
+        }
+
+        .email-container {
+          margin: 0 10px;
+          border-radius: 8px;
+        }
+
+        .header,
+        .content,
+        .footer {
+          padding: 30px 20px;
+        }
+
+        .verification-code {
+          font-size: 28px;
+          letter-spacing: 4px;
+        }
+
+        .greeting {
+          font-size: 20px;
+        }
+
+        .code-container {
+          min-width: auto;
+          width: 100%;
+        }
+      }
+
+      @media only screen and (max-width: 480px) {
+        .header,
+        .content,
+        .footer {
+          padding: 20px 15px;
+        }
+
+        .verification-code {
+          font-size: 24px;
+          letter-spacing: 2px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-wrapper">
+      <table
+        role="presentation"
+        cellspacing="0"
+        cellpadding="0"
+        border="0"
+        width="100%"
+      >
+        <tr>
+          <td align="center">
+            <div class="email-container">
+              <!-- Header -->
+              <div class="header">
+                <div class="logo-container">
+                  <div class="logo">
+                    <span class="logo-text">H</span>
+                  </div>
+                  <span class="brand-name">HuyShop</span>
+                </div>
+                <h1>Xác nhận Email</h1>
+                <p>Chúng tôi cần xác nhận địa chỉ email của bạn</p>
+              </div>
+
+              <!-- Content -->
+              <div class="content">
+                <h2 class="greeting">Xin chào!</h2>
+                <p class="message">
+                  Cảm ơn bạn đã đăng ký tài khoản với chúng tôi. Để hoàn tất quá
+                  trình đăng ký, vui lòng sử dụng mã xác nhận bên dưới để xác
+                  thực địa chỉ email của bạn.
+                </p>
+
+                <!-- Verification Code -->
+                <div class="verification-section">
+                  <div class="code-container">
+                    <div class="code-label">Mã xác nhận của bạn</div>
+                    <div class="verification-code">{{code}}</div>
+                    <div class="code-hint">Vui lòng nhập chính xác mã này</div>
+                  </div>
+                </div>
+
+                <!-- Action Button -->
+                <div class="action-button">
+                  <a href="#" class="btn">Xác nhận ngay</a>
+                </div>
+
+                <!-- Instructions -->
+                <div class="instructions">
+                  <h3>📝 Hướng dẫn:</h3>
+                  <p>
+                    Nhập mã này vào trang xác nhận email hoặc ứng dụng của chúng
+                    tôi. Nếu bạn không yêu cầu xác nhận này, vui lòng bỏ qua
+                    email này.
+                  </p>
+                </div>
+
+                <!-- Expiry Notice -->
+                <div class="expire-notice">
+                  <strong>⏰ Lưu ý quan trọng:</strong> Mã xác nhận này sẽ hết
+                  hạn sau 5 phút kể từ khi gửi.
+                </div>
+              </div>
+
+              <!-- Footer -->
+              <div class="footer">
+                <div class="company-info">
+                  <div class="company-name">HuyShop</div>
+                  <div class="company-details">
+                    📍 123 Đường ABC, Quận 1, TP.HCM<br />
+                    📞 Hotline: 1900-1234<br />
+                    📧 Email: support@huyshop.com
+                  </div>
+                </div>
+
+                <div class="social-links">
+                  <a href="#" class="social-link" title="Facebook">f</a>
+                  <a href="#" class="social-link" title="Twitter">t</a>
+                  <a href="#" class="social-link" title="Instagram">📷</a>
+                  <a href="#" class="social-link" title="LinkedIn">in</a>
+                </div>
+
+                <div class="copyright">
+                  © 2024 HuyShop. Tất cả quyền được bảo lưu.<br />
+                  Bạn nhận được email này vì đã đăng ký tài khoản với chúng tôi.
+                </div>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

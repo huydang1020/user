@@ -8,6 +8,9 @@ import (
 	"log"
 	"math/big"
 	"net/http"
+	"os"
+	"strings"
+	"time"
 
 	"github.com/rs/xid"
 	"golang.org/x/crypto/bcrypt"
@@ -27,6 +30,10 @@ func MakeStoreId() string {
 
 func MakePartnerId() string {
 	return "par" + xid.New().String()
+}
+
+func MakePartnerRegistrationId() string {
+	return "pre" + xid.New().String()
 }
 
 func HashPassword(password string) (string, error) {
@@ -54,18 +61,68 @@ func GenerateVerifyOtp() string {
 	return code
 }
 
+func ConvertUnixToDateTime(format string, t int64) (string, error) {
+	location, err := time.LoadLocation("Asia/Ho_Chi_Minh")
+	if err != nil {
+		log.Println("load location err:", err)
+		return "", err
+	}
+	formattedDate := time.Unix(t, 0).In(location).Format(format)
+	return formattedDate, nil
+}
+
 func SendEmail(apiKey, url, to, subject, code string) error {
-	content := fmt.Sprintf(`
-		<html>
-		<body>
-			<h2>Chào mừng bạn đến với Huy Shop!</h2>
-			<p>Đây là mã xác nhận của bạn:</p>
-			<h3 style="color:rgb(4, 47, 61);">%s</h3>
-			<p>Vui lòng nhập mã này để hoàn tất đăng ký tài khoản.</p>
-			<p>Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này.</p>
-		</body>
-		</html>
-	`, code)
+	bin, err := os.ReadFile("assets/confirm_email.html")
+	if err != nil {
+		log.Println("read file err:", err)
+		return err
+	}
+	bodyMail := string(bin)
+	metric := map[string]string{
+		"code": code,
+	}
+	for k, v := range metric {
+		bodyMail = strings.Replace(bodyMail, "{{"+k+"}}", v, -1)
+	}
+	payload := map[string]interface{}{
+		"sender": map[string]string{
+			"name":  "Huy Shop",
+			"email": "huyhoang2028dv@gmail.com",
+		},
+		"to": []map[string]string{
+			{
+				"email": to,
+			},
+		},
+		"subject":     subject,
+		"htmlContent": bodyMail,
+	}
+
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("api-key", apiKey)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	fmt.Println("Status:", resp.Status)
+	return nil
+}
+
+func SendEmailPartnerRegistration(apiKey, url, to, status, subject, content string) error {
 	payload := map[string]interface{}{
 		"sender": map[string]string{
 			"name":  "Huy Shop",
@@ -100,6 +157,6 @@ func SendEmail(apiKey, url, to, subject, code string) error {
 	}
 	defer resp.Body.Close()
 
-	fmt.Println("Status:", resp.Status)
+	fmt.Println("Email Status:", resp.Status)
 	return nil
 }
