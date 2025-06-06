@@ -16,6 +16,8 @@ const (
 	tblPartner                = "partner"
 	tblPartnerRegistration    = "partner_registration"
 	tblShippingAddressMapping = "shipping_address_mapping"
+	tblPlan                   = "plan"
+	tblHistoryPlans 		= "history_plans"
 )
 
 func createTable(model interface{}, tblName string, engine *xorm.Engine) error {
@@ -56,6 +58,12 @@ func (d *DB) CreateDb() error {
 		return err
 	}
 	if err := createTable(&pb.PartnerRegistration{}, tblPartnerRegistration, d.engine); err != nil {
+		return err
+	}
+	if err := createTable(&pb.Plan{}, tblPlan, d.engine); err != nil {
+		return err
+	}
+	if err := createTable(&pb.HistoryPlans{}, tblHistoryPlans, d.engine); err != nil {
 		return err
 	}
 	return nil

@@ -1,7 +1,6 @@
 package db
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -666,7 +665,7 @@ func (d *DB) TranApprovePartnerRegistration(req *pb.PartnerRegistration) error {
 	partner := &pb.Partner{
 		Id:        utils.MakePartnerId(),
 		Name:      user.GetFullName(),
-		Type:      "seller",
+		Type:      pb.Partner_seller.String(),
 		State:     pb.Partner_active.String(),
 		CreatedAt: time.Now().Unix(),
 	}
@@ -686,24 +685,97 @@ func (d *DB) TranApprovePartnerRegistration(req *pb.PartnerRegistration) error {
 		return err
 	}
 
-	// create store for partner
-	store := &pb.Store{}
-	if err := json.Unmarshal([]byte(req.GetStore()), store); err != nil {
-		ss.Rollback()
-		log.Println("Error:", err)
-		return errors.New(utils.E_invalid_store)
-	}
-	store.Id = utils.MakeStoreId()
-	store.PartnerId = partner.GetId()
-	store.CreatedAt = time.Now().Unix()
-	store.State = pb.Store_active.String()
-	if _, err := ss.Insert(store); err != nil {
-		ss.Rollback()
-		log.Println("Error:", err)
-		return errors.New(utils.E_can_not_insert_store)
-	}
 	if err := ss.Commit(); err != nil {
 		return err
 	}
 	return nil
+}
+
+func (d *DB) CreatePlan(plan *pb.Plan) error {
+	c, err := d.engine.Insert(plan)
+	if err != nil {
+		return err
+	}
+	if c == 0 {
+		return errors.New(utils.E_can_not_insert)
+	}
+	return nil
+}
+
+func (d *DB) UpdatePlan(updator, selector *pb.Plan) error {
+	c, err := d.engine.Update(updator, selector)
+	if err != nil {
+		return err
+	}
+	if c == 0 {
+		return errors.New(utils.E_can_not_update)
+	}
+	return nil
+}
+
+func (d *DB) DeletePlan(id string) error {
+	if id == "" {
+		return errors.New(utils.E_not_found_id)
+	}
+	_, err := d.engine.Table(tblPlan).Delete(&pb.Plan{Id: id})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *DB) CountPlan(rq *pb.PlansRequest) (int64, error) {
+	ss := d.listPlansQuery(rq)
+	return ss.Count()
+}
+
+func (d *DB) listPlansQuery(rq *pb.PlansRequest) *xorm.Session {
+	ss := d.engine.Table(tblPlan)
+	if len(rq.GetIds()) > 0 {
+		ss.In("id", rq.GetIds())
+	} else if rq.GetId() != "" {
+		ss.And("id = ?", rq.GetId())
+	}
+	if rq.GetName() != "" {
+		ss.And("name like ?", "%"+rq.GetName()+"%")
+	}
+	if rq.GetState() != "" {
+		ss.And("state = ?", rq.GetState())
+	}
+	return ss
+}
+
+func (d *DB) ListPlans(rq *pb.PlansRequest) ([]*pb.Plan, error) {
+	ss := d.listPlansQuery(rq)
+	if rq.GetLimit() != 0 {
+		ss.Limit(int(rq.GetLimit()), int(rq.GetSkip()*rq.GetLimit()))
+	}
+	plans := make([]*pb.Plan, 0)
+	err := ss.Desc("created_at").Find(&plans)
+	if err != nil {
+		return nil, err
+	}
+	return plans, nil
+}
+
+func (d *DB) GetPlan(rq *pb.PlansRequest) (*pb.Plan, error) {
+	plan := &pb.Plan{
+		Id: rq.GetId(),
+	}
+	ishas, err := d.engine.Get(plan)
+	if err != nil {
+		return nil, err
+	}
+	if !ishas {
+		return nil, errors.New(utils.E_not_found)
+	}
+	return plan, nil
+}
+
+func (d *DB) IsPlansExisted(u *pb.Plan) bool {
+	any, err := d.engine.Exist(u)
+	if err != nil {
+		return false
+	}
+	return any
 }

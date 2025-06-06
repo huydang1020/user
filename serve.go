@@ -64,6 +64,13 @@ type IDatabase interface {
 	CountPartnerRegistration(rq *pb.PartnerRegistrationRequest) (int64, error)
 	IsPartnerRegistrationExisted(req *pb.PartnerRegistration) bool
 	TranApprovePartnerRegistration(req *pb.PartnerRegistration) error
+
+	CreatePlan(req *pb.Plan) error
+	GetPlan(rq *pb.PlansRequest) (*pb.Plan, error)
+	ListPlans(rq *pb.PlansRequest) ([]*pb.Plan, error)
+	UpdatePlan(updator, selector *pb.Plan) error
+	DeletePlan(id string) error
+	CountPlan(rq *pb.PlansRequest) (int64, error)
 }
 
 func NewRedisCache(addr, pw string, db int) *redis.Client {

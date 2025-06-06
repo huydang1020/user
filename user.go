@@ -116,13 +116,15 @@ func (u *User) GetUser(ctx context.Context, req *pb.UserRequest) (*pb.User, erro
 		return nil, err
 	}
 	user.Password = ""
-	up, err := u.Db.GetUserPoint(&pb.UserPoint{UserId: user.GetId()})
-	if err != nil {
-		log.Println("get user point error:", err)
-		return nil, err
-	}
-	user.Point = &pb.UserPoint{
-		Points: up.Points,
+	if user.RoleId != "roled01m13a0bb10jipid52g" && user.RoleId != "roled01i47a0bb17uj3r5dgg" {
+		up, err := u.Db.GetUserPoint(&pb.UserPoint{UserId: user.GetId()})
+		if err != nil {
+			log.Println("get user point error:", err)
+			return nil, err
+		}
+		user.Point = &pb.UserPoint{
+			Points: up.Points,
+		}
 	}
 	return user, nil
 }

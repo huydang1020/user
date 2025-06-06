@@ -45,4 +45,6 @@ const (
 	E_can_not_insert_store            = "can_not_insert_store"
 	E_already_partner                 = "already_partner"
 	E_seller_application_pending      = "seller_application_pending"
+	E_invalid_name                    = "invalid_name"
+	E_not_found_plans                 = "not_found_plans"
 )

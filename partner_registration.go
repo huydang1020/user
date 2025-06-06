@@ -37,9 +37,6 @@ func (u *User) CreatePartnerRegistration(ctx context.Context, req *pb.PartnerReg
 			return nil, errors.New(utils.E_seller_application_pending)
 		}
 	}
-	if req.GetStore() == "" {
-		return nil, errors.New(utils.E_invalid_store)
-	}
 	req.Id = utils.MakePartnerRegistrationId()
 	req.CreatedAt = time.Now().Unix()
 	req.State = pb.PartnerRegistration_pending.String()
