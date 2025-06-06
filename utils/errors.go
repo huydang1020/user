@@ -46,5 +46,7 @@ const (
 	E_already_partner                 = "already_partner"
 	E_seller_application_pending      = "seller_application_pending"
 	E_invalid_name                    = "invalid_name"
-	E_not_found_plans                 = "not_found_plans"
+	E_not_found_plan                  = "not_found_plan"
+	E_invalid_prices                  = "invalid_prices"
+	E_invalid_features                = "invalid_features"
 )

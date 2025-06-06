@@ -36,6 +36,10 @@ func MakePartnerRegistrationId() string {
 	return "pre" + xid.New().String()
 }
 
+func MakePlanId() string {
+	return "pla" + xid.New().String()
+}
+
 func HashPassword(password string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), 10)
 	if err != nil {

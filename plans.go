@@ -12,12 +12,18 @@ import (
 )
 
 func (u *User) CreatePlan(ctx context.Context, req *pb.Plan) (*common.Empty, error) {
-	if req.Id == "" {
-		return nil, errors.New(utils.E_invalid_id)
-	}
-	if req.Name == "" {
+	if req.GetName() == "" {
 		return nil, errors.New(utils.E_invalid_name)
 	}
+	if req.GetPrices() == nil {
+		return nil, errors.New(utils.E_invalid_prices)
+	}
+	if req.GetFeatures() == nil {
+		return nil, errors.New(utils.E_invalid_features)
+	}
+	req.Id = utils.MakePlanId()
+	req.CreatedAt = time.Now().Unix()
+	req.State = pb.Plan_active.String()
 	if err := u.Db.CreatePlan(req); err != nil {
 		return nil, err
 	}
@@ -28,18 +34,18 @@ func (u *User) GetPlan(ctx context.Context, req *pb.Plan) (*pb.Plan, error) {
 	if req.Id == "" {
 		return nil, errors.New(utils.E_invalid_id)
 	}
-	plans, err := u.Db.GetPlan(&pb.PlansRequest{Id: req.Id})
+	plan, err := u.Db.GetPlan(&pb.PlansRequest{Id: req.Id})
 	if err != nil {
 		return nil, err
 	}
-	if plans == nil {
-		return nil, errors.New(utils.E_not_found_plans)
+	if plan == nil {
+		return nil, errors.New(utils.E_not_found_plan)
 	}
-	return plans, nil
+	return plan, nil
 }
 
 func (u *User) ListPlans(ctx context.Context, req *pb.PlansRequest) (*pb.Plans, error) {
-	log.Println("ListPlan:", req)
+	log.Println("req:", req)
 	list, err := u.Db.ListPlans(req)
 	if err != nil {
 		log.Println("ListPlan error:", err)
@@ -52,16 +58,16 @@ func (u *User) UpdatePlan(ctx context.Context, req *pb.Plan) (*common.Empty, err
 	if req.Id == "" {
 		return nil, errors.New(utils.E_invalid_id)
 	}
-	plans, err := u.Db.GetPlan(&pb.PlansRequest{
+	plan, err := u.Db.GetPlan(&pb.PlansRequest{
 		Id: req.Id,
 	})
-	if plans == nil {
-		return nil, errors.New(utils.E_not_found_plans)
+	if plan == nil {
+		return nil, errors.New(utils.E_not_found_plan)
 	}
 	if err != nil {
 		return nil, err
 	}
-	if plans.GetState() != pb.Plan_active.String() {
+	if plan.GetState() != pb.Plan_active.String() {
 		return nil, errors.New(utils.E_invalid_state)
 	}
 	req.UpdatedAt = time.Now().Unix()

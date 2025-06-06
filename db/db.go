@@ -576,7 +576,7 @@ func (d *DB) UpdatePartnerRegistration(updator, selector *pb.PartnerRegistration
 		return err
 	}
 	if c == 0 {
-		return errors.New(utils.E_can_not_update)
+		log.Println("can_not_update")
 	}
 	return nil
 }
@@ -708,7 +708,7 @@ func (d *DB) UpdatePlan(updator, selector *pb.Plan) error {
 		return err
 	}
 	if c == 0 {
-		return errors.New(utils.E_can_not_update)
+		log.Println("can_not_update")
 	}
 	return nil
 }
@@ -762,12 +762,9 @@ func (d *DB) GetPlan(rq *pb.PlansRequest) (*pb.Plan, error) {
 	plan := &pb.Plan{
 		Id: rq.GetId(),
 	}
-	ishas, err := d.engine.Get(plan)
+	_, err := d.engine.Get(plan)
 	if err != nil {
 		return nil, err
-	}
-	if !ishas {
-		return nil, errors.New(utils.E_not_found)
 	}
 	return plan, nil
 }
