@@ -8,7 +8,9 @@ import (
 	"log"
 	"math/big"
 	"net/http"
+	"net/url"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -38,6 +40,10 @@ func MakePartnerRegistrationId() string {
 
 func MakePlanId() string {
 	return "pla" + xid.New().String()
+}
+
+func MakeOrderPlanId() string {
+	return "opl" + xid.New().String()
 }
 
 func HashPassword(password string) (string, error) {
@@ -73,6 +79,21 @@ func ConvertUnixToDateTime(format string, t int64) (string, error) {
 	}
 	formattedDate := time.Unix(t, 0).In(location).Format(format)
 	return formattedDate, nil
+}
+
+func SortParams(params url.Values) url.Values {
+	keys := make([]string, 0, len(params))
+	for k := range params {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	sortedParams := make(url.Values)
+	for _, k := range keys {
+		sortedParams[k] = params[k]
+	}
+
+	return sortedParams
 }
 
 func SendEmail(apiKey, url, to, subject, code string) error {

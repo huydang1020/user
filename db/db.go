@@ -91,7 +91,7 @@ func (d *DB) GetUser(rq *pb.UserRequest) (*pb.User, error) {
 		return nil, err
 	}
 	if !ishas {
-		return nil, errors.New(utils.E_not_found)
+		return nil, errors.New(utils.E_not_found_user)
 	}
 	return user, nil
 }
@@ -103,7 +103,7 @@ func (d *DB) FindUserWithUsername(username string) (*pb.User, error) {
 		return nil, err
 	}
 	if !ishas {
-		return nil, errors.New(utils.E_not_found)
+		return nil, errors.New(utils.E_not_found_user)
 	}
 	return user, nil
 }
@@ -115,7 +115,7 @@ func (d *DB) FindUserWithPhone(phone string) (*pb.User, error) {
 		return nil, err
 	}
 	if !ishas {
-		return nil, errors.New(utils.E_not_found)
+		return nil, errors.New(utils.E_not_found_user)
 	}
 	return user, nil
 }
@@ -127,7 +127,7 @@ func (d *DB) FindUserWithEmail(email string) (*pb.User, error) {
 		return nil, err
 	}
 	if !ishas {
-		return nil, errors.New(utils.E_not_found)
+		return nil, errors.New(utils.E_not_found_user)
 	}
 	return user, nil
 }
@@ -259,7 +259,7 @@ func (d *DB) GetUserPoint(rq *pb.UserPoint) (*pb.UserPoint, error) {
 		return nil, err
 	}
 	if !ishas {
-		return nil, errors.New(utils.E_not_found)
+		return nil, errors.New(utils.E_not_found_user_point)
 	}
 	return rq, nil
 }
@@ -661,13 +661,40 @@ func (d *DB) TranApprovePartnerRegistration(req *pb.PartnerRegistration) error {
 		ss.Rollback()
 		return err
 	}
+
+	plan, err := d.GetPlan(&pb.PlansRequest{Id: req.GetPlanId()})
+	if plan == nil || err != nil {
+		log.Println("Error:", err)
+		ss.Rollback()
+		return errors.New(utils.E_not_found_plan)
+	}
+	var endDate int64
+	switch req.GetPlanType() {
+	case "1 month":
+		endDate = req.UpdatedAt + 30*24*3600
+	case "3 month":
+		endDate = req.UpdatedAt + 90*24*3600
+	case "6 month":
+		endDate = req.UpdatedAt + 180*24*3600
+	case "1 year":
+		endDate = req.UpdatedAt + 365*24*3600
+	case "Unlimited":
+		endDate = -1
+	default:
+		return errors.New(utils.E_invalid_plan_type)
+	}
 	// create new partner
 	partner := &pb.Partner{
-		Id:        utils.MakePartnerId(),
-		Name:      user.GetFullName(),
-		Type:      pb.Partner_seller.String(),
-		State:     pb.Partner_active.String(),
-		CreatedAt: time.Now().Unix(),
+		Id:                  utils.MakePartnerId(),
+		Name:                user.GetFullName(),
+		Type:                pb.Partner_seller.String(),
+		State:               pb.Partner_active.String(),
+		PlanId:              req.GetPlanId(),
+		PlanExpiredAt:       endDate,
+		MaxStoresAllowed:    plan.GetMaxStoresAllowed(),
+		MaxProductsPerStore: plan.GetMaxProductsPerStore(),
+		CurrentStoresCount:  1,
+		CreatedAt:           time.Now().Unix(),
 	}
 	if _, err := d.engine.Insert(partner); err != nil {
 		ss.Rollback()
@@ -775,4 +802,124 @@ func (d *DB) IsPlansExisted(u *pb.Plan) bool {
 		return false
 	}
 	return any
+}
+
+func (d *DB) CreateOrderPlan(req *pb.OrderPlan) error {
+	c, err := d.engine.Insert(req)
+	if err != nil {
+		return err
+	}
+	if c == 0 {
+		return errors.New(utils.E_can_not_insert)
+	}
+	return nil
+}
+
+func (d *DB) GetOrderPlan(req *pb.OrderPlan) (*pb.OrderPlan, error) {
+	ishas, err := d.engine.Get(req)
+	if err != nil {
+		return nil, err
+	}
+	if !ishas {
+		return nil, errors.New(utils.E_not_found)
+	}
+	return req, nil
+}
+
+func (d *DB) listOrderPlanQuery(rq *pb.OrderPlanRequest) *xorm.Session {
+	ss := d.engine.Table(tblOrderPlan)
+	if len(rq.GetIds()) > 0 {
+		ss.In("id", rq.GetIds())
+	} else if rq.Id != "" {
+		ss.And("id = ?", rq.GetId())
+	}
+	if rq.GetUserId() != "" {
+		ss.And("user_id = ?", rq.GetUserId())
+	}
+	if rq.GetPlanId() != "" {
+		ss.And("plan_id = ?", rq.GetPlanId())
+	}
+	if rq.GetStartDate() != 0 {
+		ss.And("start_date >= ?", rq.GetStartDate())
+	}
+	if rq.GetEndDate() != 0 {
+		ss.And("end_date >= ?", rq.GetEndDate())
+	}
+	if rq.GetExpiredAt() != 0 {
+		ss.And("exprire_at = ?", rq.GetExpiredAt())
+	}
+	return ss
+}
+
+func (d *DB) ListOrderPlan(rq *pb.OrderPlanRequest) ([]*pb.OrderPlan, error) {
+	ss := d.listOrderPlanQuery(rq)
+	if rq.GetLimit() != 0 {
+		ss.Limit(int(rq.GetLimit()), int(rq.GetSkip()*rq.GetLimit()))
+	}
+	orderPlans := make([]*pb.OrderPlan, 0)
+	err := ss.Desc("created_at").Find(&orderPlans)
+	if err != nil {
+		return nil, err
+	}
+	return orderPlans, nil
+}
+
+func (d *DB) CountOrderPlan(rq *pb.OrderPlanRequest) (int64, error) {
+	ss := d.listOrderPlanQuery(rq)
+	return ss.Count()
+}
+
+func (d *DB) IsOrderPlanExisted(u *pb.OrderPlan) bool {
+	any, err := d.engine.Exist(u)
+	if err != nil {
+		return false
+	}
+	return any
+}
+
+func (d *DB) UpdateOrderPlan(updator, selector *pb.OrderPlan) error {
+	c, err := d.engine.Update(updator, selector)
+	if err != nil {
+		return err
+	}
+	if c == 0 {
+		log.Println("can_not_update")
+	}
+	return nil
+}
+
+func (d *DB) DeleteOrderPlan(id string) error {
+	if id == "" {
+		return errors.New(utils.E_not_found_id)
+	}
+	_, err := d.engine.Table(tblOrderPlan).Delete(&pb.OrderPlan{Id: id})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *DB) IsExistOrderPlan(id string) (bool, error) {
+	ss := d.engine.Where("id = ?", id).Table(tblOrderPlan)
+	return ss.Exist()
+}
+
+func (d *DB) TranCreateOrderPlan(req *pb.OrderPlan) error {
+	ss := d.engine.NewSession()
+	defer ss.Close()
+	if err := ss.Begin(); err != nil {
+		return err
+	}
+	if _, err := ss.Insert(req); err != nil {
+		ss.Rollback()
+		return err
+	}
+	if _, err := d.engine.Insert(req.PartnerRegistration); err != nil {
+		ss.Rollback()
+		return err
+	}
+	if err := ss.Commit(); err != nil {
+		return err
+	}
+	return nil
 }
