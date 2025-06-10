@@ -104,7 +104,7 @@ func (u *User) DeletePartnerRegistration(ctx context.Context, req *pb.PartnerReg
 	return &common.Empty{}, nil
 }
 
-func (u *User) ApprovePartnerRegistration(ctx context.Context, req *pb.PartnerRegistration) (*common.Empty, error) {
+func (u *User) UpdateStatePartnerRegistration(ctx context.Context, req *pb.PartnerRegistration) (*common.Empty, error) {
 	if req.Id == "" {
 		return nil, errors.New(utils.E_invalid_id)
 	}
@@ -117,43 +117,25 @@ func (u *User) ApprovePartnerRegistration(ctx context.Context, req *pb.PartnerRe
 	if err != nil {
 		return nil, err
 	}
-	registration.State = pb.PartnerRegistration_approved.String()
 	registration.UpdatedAt = time.Now().Unix()
-	if err := u.Db.TranApprovePartnerRegistration(registration); err != nil {
-		return nil, err
+	if req.GetState() == pb.PartnerRegistration_approved.String() {
+		registration.State = pb.PartnerRegistration_approved.String()
+		if err := u.Db.TranApprovePartnerRegistration(registration); err != nil {
+			return nil, err
+		}
+	} else if req.GetState() == pb.PartnerRegistration_rejected.String() {
+		registration.State = pb.PartnerRegistration_rejected.String()
+		registration.ReasonReject = req.GetReasonReject()
+		if err := u.Db.UpdatePartnerRegistration(registration, &pb.PartnerRegistration{Id: req.GetId()}); err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, errors.New(utils.E_invalid_state)
 	}
 	if err := u.SendEmailPartnerRegistrationStatus(registration); err != nil {
 		log.Println("send email err:", err)
 		return nil, err
 	}
-	return &common.Empty{}, nil
-}
-
-func (u *User) RejectPartnerRegistration(ctx context.Context, req *pb.PartnerRegistration) (*common.Empty, error) {
-	log.Println("RejectPartnerRegistration:", req)
-	if req.Id == "" {
-		return nil, errors.New(utils.E_invalid_id)
-	}
-	registration, err := u.Db.GetPartnerRegistration(&pb.PartnerRegistrationRequest{
-		Id: req.GetId(),
-	})
-	if registration == nil {
-		return nil, errors.New(utils.E_not_found_partner_registration)
-	}
-	if err != nil {
-		return nil, err
-	}
-	registration.State = pb.PartnerRegistration_rejected.String()
-	registration.UpdatedAt = time.Now().Unix()
-	registration.ReasonReject = req.GetReasonReject()
-	if err := u.Db.UpdatePartnerRegistration(registration, &pb.PartnerRegistration{Id: req.GetId()}); err != nil {
-		return nil, err
-	}
-	if err := u.SendEmailPartnerRegistrationStatus(registration); err != nil {
-		log.Println("send email err:", err)
-		return nil, err
-	}
-	log.Println("Đã gửi email thông báo trạng thái đăng ký đối tác:", registration.GetUserId(), registration.GetState())
 	return &common.Empty{}, nil
 }
 

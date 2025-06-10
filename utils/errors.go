@@ -62,4 +62,6 @@ const (
 	E_not_found_user_point            = "not_found_user_point"
 	E_not_found_plan_id               = "not_found_plan_id"
 	E_not_found_order_data            = "not_found_order_data"
+	E_user_not_active                 = "user_not_active"
+	E_invalid_action_type             = "invalid_action_type"
 )

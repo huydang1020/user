@@ -668,20 +668,15 @@ func (d *DB) TranApprovePartnerRegistration(req *pb.PartnerRegistration) error {
 		ss.Rollback()
 		return errors.New(utils.E_not_found_plan)
 	}
-	var endDate int64
-	switch req.GetPlanType() {
-	case "1 month":
-		endDate = req.UpdatedAt + 30*24*3600
-	case "3 month":
-		endDate = req.UpdatedAt + 90*24*3600
-	case "6 month":
-		endDate = req.UpdatedAt + 180*24*3600
-	case "1 year":
-		endDate = req.UpdatedAt + 365*24*3600
-	case "Unlimited":
-		endDate = -1
+	startTime := time.Now()
+	var endTime time.Time
+	switch req.PlanType {
+	case "month":
+		endTime = startTime.AddDate(0, 1, 0) // Thêm 1 tháng
+	case "year":
+		endTime = startTime.AddDate(1, 0, 0) // Thêm 1 năm
 	default:
-		return errors.New(utils.E_invalid_plan_type)
+		return errors.New("invalid plan type")
 	}
 	// create new partner
 	partner := &pb.Partner{
@@ -690,7 +685,7 @@ func (d *DB) TranApprovePartnerRegistration(req *pb.PartnerRegistration) error {
 		Type:                pb.Partner_seller.String(),
 		State:               pb.Partner_active.String(),
 		PlanId:              req.GetPlanId(),
-		PlanExpiredAt:       endDate,
+		PlanExpiredAt:       endTime.Unix(),
 		MaxStoresAllowed:    plan.GetMaxStoresAllowed(),
 		MaxProductsPerStore: plan.GetMaxProductsPerStore(),
 		CurrentStoresCount:  1,
@@ -778,7 +773,7 @@ func (d *DB) ListPlans(rq *pb.PlansRequest) ([]*pb.Plan, error) {
 		ss.Limit(int(rq.GetLimit()), int(rq.GetSkip()*rq.GetLimit()))
 	}
 	plans := make([]*pb.Plan, 0)
-	err := ss.Desc("created_at").Find(&plans)
+	err := ss.Asc("created_at").Find(&plans)
 	if err != nil {
 		return nil, err
 	}
@@ -914,9 +909,11 @@ func (d *DB) TranCreateOrderPlan(req *pb.OrderPlan) error {
 		ss.Rollback()
 		return err
 	}
-	if _, err := d.engine.Insert(req.PartnerRegistration); err != nil {
-		ss.Rollback()
-		return err
+	if req.PartnerRegistration != nil {
+		if _, err := d.engine.Insert(req.PartnerRegistration); err != nil {
+			ss.Rollback()
+			return err
+		}
 	}
 	if err := ss.Commit(); err != nil {
 		return err
