@@ -14,8 +14,6 @@ const (
 	tblPointExchange          = "point_exchange"
 	tblStore                  = "store"
 	tblPartner                = "partner"
-	tblPartnerRegistration    = "partner_registration"
-	tblShippingAddressMapping = "shipping_address_mapping"
 	tblPlan                   = "plan"
 	tblOrderPlan              = "order_plan"
 )
@@ -55,9 +53,6 @@ func (d *DB) CreateDb() error {
 		return err
 	}
 	if err := createTable(&pb.PointExchange{}, tblPointExchange, d.engine); err != nil {
-		return err
-	}
-	if err := createTable(&pb.PartnerRegistration{}, tblPartnerRegistration, d.engine); err != nil {
 		return err
 	}
 	if err := createTable(&pb.Plan{}, tblPlan, d.engine); err != nil {

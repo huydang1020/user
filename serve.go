@@ -56,15 +56,6 @@ type IDatabase interface {
 	ListPartner(rq *pb.PartnerRequest) ([]*pb.Partner, error)
 	CountPartner(rq *pb.PartnerRequest) (int64, error)
 
-	CreatePartnerRegistration(req *pb.PartnerRegistration) error
-	UpdatePartnerRegistration(updator, selector *pb.PartnerRegistration) error
-	DeletePartnerRegistration(rq *pb.PartnerRegistration) error
-	GetPartnerRegistration(rq *pb.PartnerRegistrationRequest) (*pb.PartnerRegistration, error)
-	ListPartnerRegistration(rq *pb.PartnerRegistrationRequest) ([]*pb.PartnerRegistration, error)
-	CountPartnerRegistration(rq *pb.PartnerRegistrationRequest) (int64, error)
-	IsPartnerRegistrationExisted(req *pb.PartnerRegistration) bool
-	TranApprovePartnerRegistration(req *pb.PartnerRegistration) error
-
 	CreatePlan(req *pb.Plan) error
 	GetPlan(rq *pb.PlansRequest) (*pb.Plan, error)
 	ListPlans(rq *pb.PlansRequest) ([]*pb.Plan, error)
@@ -78,7 +69,6 @@ type IDatabase interface {
 	UpdateOrderPlan(updator, selector *pb.OrderPlan) error
 	CountOrderPlan(rq *pb.OrderPlanRequest) (int64, error)
 	DeleteOrderPlan(id string) error
-	TranCreateOrderPlan(req *pb.OrderPlan) error
 }
 
 func NewRedisCache(addr, pw string, db int) *redis.Client {

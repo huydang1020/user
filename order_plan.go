@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -24,6 +25,8 @@ const (
 	REDIS_KEY_ORDER_PLAN = "order_plan_"
 	ROLE_SELLER          = "roled0vspl69ipf5ueqvq6v0"
 	ROLE_CUSTOMER        = "roled0di17m9ipf12jq5ndlg"
+	ACCEPT               = "accept"
+	REJECT               = "rejected"
 )
 
 func (u *User) CreateOrderPlan(ctx context.Context, req *pb.OrderPlan) (*pb.OrderPlan, error) {
@@ -232,25 +235,58 @@ func (u *User) CreateOrderPlanVNpay(ctx context.Context, req *pb.OrderPlan) (*co
 		log.Println("user not found:", order.UserId)
 		return nil, errors.New(utils.E_not_found_user)
 	}
+	order.CreatedAt = time.Now().Unix()
 	if err := u.Db.CreateOrderPlan(order); err != nil {
 		log.Println("trans insert order err:", err)
 		return nil, errors.New(utils.E_internal_error)
 	}
-
+	newPlan, err := u.Db.GetPlan(&pb.PlansRequest{Id: order.PlanId})
+	if err != nil || newPlan == nil {
+		log.Println("get plan by id error:", err)
+		return nil, errors.New(utils.E_plan_not_found)
+	}
+	startTime := time.Now()
+	var endTime time.Time
+	switch order.Type {
+	case "month":
+		endTime = startTime.AddDate(0, 1, 0) // Thêm 1 tháng
+	case "year":
+		endTime = startTime.AddDate(1, 0, 0) // Thêm 1 năm
+	default:
+		return nil, errors.New(utils.E_invalid_plan_type)
+	}
 	// Nếu action là create, cần tạo partner registration
 	if order.Action == pb.OrderPlan_create.String() {
-		pr := &pb.PartnerRegistration{
-			Id:        utils.MakePartnerRegistrationId(),
-			UserId:    order.UserId,
-			State:     pb.PartnerRegistration_pending.String(),
-			CreatedAt: time.Now().Unix(),
-			PlanId:    order.PlanId,
-			PlanType:  order.Type,
+		partner := &pb.Partner{
+			Id:                  utils.MakePartnerId(),
+			Name:                user.GetFullName(),
+			Type:                pb.Partner_seller.String(),
+			State:               pb.Partner_active.String(),
+			PlanId:              order.GetPlanId(),
+			PlanExpiredAt:       endTime.Unix(),
+			MaxStoresAllowed:    newPlan.GetMaxStoresAllowed(),
+			MaxProductsPerStore: newPlan.GetMaxProductsPerStore(),
+			PlanType:            order.Type,
+			CurrentStoresCount:  1,
+			CreatedAt:           time.Now().Unix(),
 		}
-		if err := u.Db.CreatePartnerRegistration(pr); err != nil {
-			log.Println("create partner registration error:", err)
+		if err := u.Db.CreatePartner(partner); err != nil {
+			log.Println("create partner error:", err)
 			return nil, errors.New(utils.E_internal_error)
 		}
+		// Cập nhật thông tin user
+		user.PartnerId = partner.Id
+		user.RoleId = ROLE_SELLER
+		if err := u.Db.UpdateUser(user, &pb.User{Id: user.Id}); err != nil {
+			log.Println("update user error:", err)
+			return nil, errors.New(utils.E_internal_error)
+		}
+		// Gửi email thông báo tạo partner thành công
+		if err := u.SendEmailCreatePartner(req, ACCEPT, ""); err != nil {
+			log.Println("send email create partner error:", err)
+			return nil, errors.New(utils.E_internal_error)
+		}
+		return &common.Empty{}, nil
 	} else if order.Action == pb.OrderPlan_renew.String() { // Nếu action là renew, cần cập nhật thông tin partner
 		partner, err := u.Db.GetPartner(&pb.PartnerRequest{Id: user.PartnerId})
 		if err != nil || partner == nil {
@@ -258,11 +294,6 @@ func (u *User) CreateOrderPlanVNpay(ctx context.Context, req *pb.OrderPlan) (*co
 			return nil, errors.New(utils.E_internal_error)
 		}
 		expriedAt := time.Unix(partner.PlanExpiredAt, 0)
-		newPlan, err := u.Db.GetPlan(&pb.PlansRequest{Id: order.PlanId})
-		if err != nil || newPlan == nil {
-			log.Println("get plan by id error:", err)
-			return nil, errors.New(utils.E_plan_not_found)
-		}
 		switch order.Type {
 		case "month":
 			expriedAt = expriedAt.AddDate(0, 1, 0) // Thêm 1 tháng
@@ -281,6 +312,11 @@ func (u *User) CreateOrderPlanVNpay(ctx context.Context, req *pb.OrderPlan) (*co
 			UpdatedAt:           time.Now().Unix(),
 		}, &pb.Partner{Id: user.PartnerId}); err != nil {
 			log.Println("update partner error:", err)
+			return nil, errors.New(utils.E_internal_error)
+		}
+		// Gửi email thông báo tạo partner thành công
+		if err := u.SendEmailCreatePartner(req, ACCEPT, ""); err != nil {
+			log.Println("send email create partner error:", err)
 			return nil, errors.New(utils.E_internal_error)
 		}
 	}
@@ -324,4 +360,52 @@ func (u *User) UpdateOrderPlan(ctx context.Context, req *pb.OrderPlan) (*common.
 		return nil, err
 	}
 	return &common.Empty{}, nil
+}
+
+func (u *User) SendEmailCreatePartner(re *pb.OrderPlan, action, reasonReject string) error {
+	user, err := u.Db.GetUser(&pb.UserRequest{Id: re.GetUserId()})
+	if err != nil {
+		log.Println("get user err:", err)
+		return err
+	}
+	var bin []byte
+	var subject string
+	log.Println("Gửi mail:", user.GetEmail())
+	switch action {
+	case ACCEPT:
+		subject = "🎉 Chúc mừng! Đơn đăng ký bán hàng của bạn đã được duyệt"
+		bin, err = os.ReadFile("assets/approved_partner.html")
+		if err != nil {
+			log.Println("read file err:", err)
+			return err
+		}
+	case REJECT:
+		subject = "😔 Thông báo về đơn đăng ký bán hàng của bạn"
+		bin, err = os.ReadFile("assets/rejected_partner.html")
+		if err != nil {
+			log.Println("read file err:", err)
+			return err
+		}
+	default:
+		return errors.New("invalid state for sending email")
+	}
+	sending_time, _ := utils.ConvertUnixToDateTime("2006-01-02 15:04:05", time.Now().Unix())
+	bodyMail := string(bin)
+	metric := map[string]string{
+		"fullname":      user.GetFullName(),
+		"createdAt":     sending_time,
+		"reason_reject": reasonReject,
+	}
+	for k, v := range metric {
+		bodyMail = strings.Replace(bodyMail, "{{"+k+"}}", v, -1)
+	}
+	err = utils.SendEmailPartnerRegistration(
+		config.MailKey,
+		config.MailUrl,
+		user.GetEmail(),
+		action,
+		subject,
+		bodyMail,
+	)
+	return err
 }
