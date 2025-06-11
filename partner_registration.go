@@ -108,6 +108,9 @@ func (u *User) UpdateStatePartnerRegistration(ctx context.Context, req *pb.Partn
 	if req.Id == "" {
 		return nil, errors.New(utils.E_invalid_id)
 	}
+	if req.State == "" {
+		return nil, errors.New(utils.E_invalid_state)
+	}
 	registration, err := u.Db.GetPartnerRegistration(&pb.PartnerRegistrationRequest{
 		Id: req.GetId(),
 	})
@@ -124,6 +127,9 @@ func (u *User) UpdateStatePartnerRegistration(ctx context.Context, req *pb.Partn
 			return nil, err
 		}
 	} else if req.GetState() == pb.PartnerRegistration_rejected.String() {
+		if req.GetReasonReject() == "" {
+			return nil, errors.New(utils.E_invalid_reason_reject)
+		}
 		registration.State = pb.PartnerRegistration_rejected.String()
 		registration.ReasonReject = req.GetReasonReject()
 		if err := u.Db.UpdatePartnerRegistration(registration, &pb.PartnerRegistration{Id: req.GetId()}); err != nil {

@@ -64,4 +64,6 @@ const (
 	E_not_found_order_data            = "not_found_order_data"
 	E_user_not_active                 = "user_not_active"
 	E_invalid_action_type             = "invalid_action_type"
+	E_invalid_reason_reject           = "invalid_reason_reject"
+	E_invalid_vnpay_return_url        = "invalid_vnpay_return_url"
 )

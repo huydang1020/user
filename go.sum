@@ -54,6 +54,8 @@ github.com/huyshop/header v0.0.58 h1:3Uei8uoYjer4VhJODHGDkkttU1cMQbJVb61qeJ6TqmU
 github.com/huyshop/header v0.0.58/go.mod h1:L/AyNEtR83jMFV1loxOb0CECEwqwhFcJCAOnuxGuaGw=
 github.com/huyshop/header v0.0.59 h1:XPG2baI17Ovl+/d4NaaGHg+03OyTfL37IHTHjE9hdak=
 github.com/huyshop/header v0.0.59/go.mod h1:L/AyNEtR83jMFV1loxOb0CECEwqwhFcJCAOnuxGuaGw=
+github.com/huyshop/header v0.0.60 h1:3IN2raYYVr9WEDZRI5Z7h5KtkNk/E0yDpVGCieB3DWY=
+github.com/huyshop/header v0.0.60/go.mod h1:L/AyNEtR83jMFV1loxOb0CECEwqwhFcJCAOnuxGuaGw=
 github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=
 github.com/joho/godotenv v1.5.1/go.mod h1:f4LDr5Voq0i2e/R5DDNOoa2zzDfwtkZa6DnEwAbqwq4=
 github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=
