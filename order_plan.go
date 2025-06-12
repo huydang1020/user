@@ -248,9 +248,9 @@ func (u *User) CreateOrderPlanVNpay(ctx context.Context, req *pb.OrderPlan) (*co
 	startTime := time.Now()
 	var endTime time.Time
 	switch order.Type {
-	case "month":
+	case "tháng":
 		endTime = startTime.AddDate(0, 1, 0) // Thêm 1 tháng
-	case "year":
+	case "năm":
 		endTime = startTime.AddDate(1, 0, 0) // Thêm 1 năm
 	default:
 		return nil, errors.New(utils.E_invalid_plan_type)
@@ -286,7 +286,6 @@ func (u *User) CreateOrderPlanVNpay(ctx context.Context, req *pb.OrderPlan) (*co
 			log.Println("send email create partner error:", err)
 			return nil, errors.New(utils.E_internal_error)
 		}
-		return &common.Empty{}, nil
 	} else if order.Action == pb.OrderPlan_renew.String() { // Nếu action là renew, cần cập nhật thông tin partner
 		partner, err := u.Db.GetPartner(&pb.PartnerRequest{Id: user.PartnerId})
 		if err != nil || partner == nil {
@@ -295,9 +294,9 @@ func (u *User) CreateOrderPlanVNpay(ctx context.Context, req *pb.OrderPlan) (*co
 		}
 		expriedAt := time.Unix(partner.PlanExpiredAt, 0)
 		switch order.Type {
-		case "month":
+		case "tháng":
 			expriedAt = expriedAt.AddDate(0, 1, 0) // Thêm 1 tháng
-		case "year":
+		case "năm":
 			expriedAt = expriedAt.AddDate(1, 0, 0) // Thêm 1 năm
 		default:
 			return nil, errors.New(utils.E_invalid_plan_type)
