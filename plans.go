@@ -21,6 +21,14 @@ func (u *User) CreatePlan(ctx context.Context, req *pb.Plan) (*common.Empty, err
 	if req.GetFeatures() == nil {
 		return nil, errors.New(utils.E_invalid_features)
 	}
+	for _, tp := range req.GetPrices() {
+		if tp.GetPrice() <= 0 {
+			return nil, errors.New(utils.E_invalid_prices)
+		}
+		if tp.GetType() == "" || (tp.GetType() != "tháng" && tp.GetType() != "năm") {
+			return nil, errors.New(utils.E_invalid_plan_type)
+		}
+	}
 	req.Id = utils.MakePlanId()
 	req.CreatedAt = time.Now().Unix()
 	req.State = pb.Plan_active.String()

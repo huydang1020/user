@@ -36,7 +36,7 @@ func (u *User) CreateOrderPlan(ctx context.Context, req *pb.OrderPlan) (*pb.Orde
 	if req.UserId == "" {
 		return nil, errors.New(utils.E_invalid_user_id)
 	}
-	if req.Type == "" {
+	if req.Type == "" || (req.Type != "tháng" && req.Type != "năm") {
 		return nil, errors.New(utils.E_invalid_plan_type)
 	}
 	if req.Action == "" {
