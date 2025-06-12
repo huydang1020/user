@@ -54,6 +54,15 @@ func HashPassword(password string) (string, error) {
 	return string(hash), nil
 }
 
+func Include (slice []string, item string) bool {
+	for _, v := range slice {
+		if v == item {
+			return true
+		}
+	}
+	return false
+}
+
 func ComparePassword(hash, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 }

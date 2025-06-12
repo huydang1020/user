@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/huyshop/header/common"
@@ -47,6 +48,7 @@ func (u *User) DeletePartner(ctx context.Context, req *pb.Partner) (*common.Empt
 }
 
 func (u *User) ListPartner(ctx context.Context, rq *pb.PartnerRequest) (*pb.Partners, error) {
+	log.Println("ListPartner", rq)
 	list, err := u.Db.ListPartner(rq)
 	if err != nil {
 		return nil, err
@@ -59,9 +61,28 @@ func (u *User) ListPartner(ctx context.Context, rq *pb.PartnerRequest) (*pb.Part
 }
 
 func (u *User) GetPartner(ctx context.Context, rq *pb.PartnerRequest) (*pb.Partner, error) {
+	log.Println("GetPartner", rq)
 	partner, err := u.Db.GetPartner(rq)
 	if err != nil {
 		return nil, err
 	}
+	if partner != nil {
+		plan, err := u.Db.GetPlan(&pb.PlansRequest{Id: partner.GetPlanId()})
+		if err != nil {
+			return nil, err
+		}
+		if plan != nil {
+			partner.Plan = plan
+		}
+	}
 	return partner, nil
+}
+
+func (u *User) CountPartner(ctx context.Context, rq *pb.PartnerRequest) (*common.Count, error) {
+	log.Println("CountPartner", rq)
+	count, err := u.Db.CountPartner(rq)
+	if err != nil {
+		return nil, err
+	}
+	return &common.Count{Count: count}, nil
 }

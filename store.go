@@ -84,3 +84,11 @@ func (u *User) GetStore(ctx context.Context, rq *pb.StoreRequest) (*pb.Store, er
 	}
 	return store, nil
 }
+
+func (u *User) CountStore(ctx context.Context, rq *pb.StoreRequest) (*common.Count, error) {
+	count, err := u.Db.CountStore(rq)
+	if err != nil {
+		return nil, err
+	}
+	return &common.Count{Count: count}, nil
+}

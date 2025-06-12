@@ -75,6 +75,7 @@ func (u *User) CreateOrderPlan(ctx context.Context, req *pb.OrderPlan) (*pb.Orde
 	randNumber := rand.Intn(99999999999999-10000000000000) + 10000000000000
 	req.OrderCode = fmt.Sprint(randNumber)
 	req.CreatedAt = time.Now().Unix()
+	req.PlanPrice = totalMoney
 	vnpUrl := os.Getenv("VNP_URL")
 	vnpSecret := os.Getenv("VNP_HASH_SECRET")
 	vnpTmnCode := os.Getenv("VNP_TMNCODE")
@@ -208,6 +209,7 @@ func getPrice(prices []*pb.Price, planType string) int64 {
 }
 
 func (u *User) CreateOrderPlanVNpay(ctx context.Context, req *pb.OrderPlan) (*common.Empty, error) {
+	log.Println("req: ", req)
 	if req.GetOrderCode() == "" {
 		return nil, errors.New(utils.E_not_found_order_code)
 	}
@@ -267,7 +269,6 @@ func (u *User) CreateOrderPlanVNpay(ctx context.Context, req *pb.OrderPlan) (*co
 			MaxStoresAllowed:    newPlan.GetMaxStoresAllowed(),
 			MaxProductsPerStore: newPlan.GetMaxProductsPerStore(),
 			PlanType:            order.Type,
-			CurrentStoresCount:  1,
 			CreatedAt:           time.Now().Unix(),
 		}
 		if err := u.Db.CreatePartner(partner); err != nil {
@@ -282,6 +283,7 @@ func (u *User) CreateOrderPlanVNpay(ctx context.Context, req *pb.OrderPlan) (*co
 			return nil, errors.New(utils.E_internal_error)
 		}
 		// Gửi email thông báo tạo partner thành công
+		req.UserId = order.UserId
 		if err := u.SendEmailCreatePartner(req, ACCEPT, ""); err != nil {
 			log.Println("send email create partner error:", err)
 			return nil, errors.New(utils.E_internal_error)
@@ -307,13 +309,14 @@ func (u *User) CreateOrderPlanVNpay(ctx context.Context, req *pb.OrderPlan) (*co
 			MaxStoresAllowed:    newPlan.MaxStoresAllowed,
 			MaxProductsPerStore: newPlan.MaxProductsPerStore,
 			PlanExpiredAt:       expriedAt.Unix(),
-			Type:                order.Type,
+			PlanType:            order.Type,
 			UpdatedAt:           time.Now().Unix(),
 		}, &pb.Partner{Id: user.PartnerId}); err != nil {
 			log.Println("update partner error:", err)
 			return nil, errors.New(utils.E_internal_error)
 		}
 		// Gửi email thông báo tạo partner thành công
+		req.UserId = order.UserId
 		if err := u.SendEmailCreatePartner(req, ACCEPT, ""); err != nil {
 			log.Println("send email create partner error:", err)
 			return nil, errors.New(utils.E_internal_error)
@@ -341,13 +344,40 @@ func (u *User) GetOrderPlan(ctx context.Context, req *pb.OrderPlan) (*pb.OrderPl
 }
 
 func (u *User) ListOrderPlan(ctx context.Context, req *pb.OrderPlanRequest) (*pb.OrderPlans, error) {
-	log.Println("req: ", req)
+	log.Println("ListOrderPlan request:", req)
 	orderPlans, err := u.Db.ListOrderPlan(req)
 	if err != nil {
 		return nil, err
 	}
 
-	return &pb.OrderPlans{OrderPlans: orderPlans, Total: int32(len(orderPlans))}, nil
+	includes := req.GetIncludes()
+	if includes != nil {
+		if utils.Include(includes, "user") {
+			for i, orderPlan := range orderPlans {
+				user, err := u.Db.GetUser(&pb.UserRequest{Id: orderPlan.UserId})
+				if err != nil {
+					log.Println("Error getting user by id:", err)
+					return nil, errors.New(utils.E_internal_error)
+				}
+				orderPlans[i].User = user
+			}
+		}
+		if utils.Include(includes, "plan") {
+			for i, orderPlan := range orderPlans {
+				plan, err := u.Db.GetPlan(&pb.PlansRequest{Id: orderPlan.PlanId})
+				if err != nil {
+					log.Println("Error getting plan by id:", err)
+					return nil, errors.New(utils.E_internal_error)
+				}
+				orderPlans[i].Plan = plan
+			}
+		}
+	}
+
+	return &pb.OrderPlans{
+		OrderPlans: orderPlans,
+		Total:      int32(len(orderPlans)),
+	}, nil
 }
 
 func (u *User) UpdateOrderPlan(ctx context.Context, req *pb.OrderPlan) (*common.Empty, error) {
