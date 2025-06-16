@@ -159,6 +159,7 @@ func (u *User) UpdateUser(ctx context.Context, req *pb.User) (*common.Empty, err
 		return nil, errors.New(utils.E_can_not_update)
 	}
 	req.UpdatedAt = time.Now().Unix()
+	req.Password = ""
 	if err := u.Db.UpdateUser(req, &pb.User{Id: req.GetId()}); err != nil {
 		return nil, errors.New(utils.E_can_not_update)
 	}
@@ -389,4 +390,109 @@ func (u *User) CheckAndSendEmailVerifyOtp(req *pb.User) error {
 		return errors.New(utils.E_internal_error)
 	}
 	return nil
+}
+
+func (u *User) SendResetPasswordOtp(ctx context.Context, req *pb.User) (*common.TTL, error) {
+	if req.GetEmail() == "" {
+		return nil, errors.New(utils.E_invalid_email)
+	}
+
+	// Kiểm tra user có tồn tại không
+	user, err := u.Db.GetUser(&pb.UserRequest{Email: req.GetEmail()})
+	if err != nil || user == nil {
+		return nil, errors.New(utils.E_not_found_user)
+	}
+
+	// Tạo key Redis riêng cho reset password
+	keyRedis := fmt.Sprintf("reset_password:%s", req.GetEmail())
+	c, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Kiểm tra xem đã có OTP chưa
+	_, err = u.cache.Get(c, keyRedis).Result()
+	if err == redis.Nil {
+		// Tạo và gửi OTP mới nếu chưa có
+		code := utils.GenerateVerifyOtp()
+		err = utils.SendEmail(config.MailKey, config.MailUrl, req.GetEmail(), "Huy Shop - Reset Password",
+			code)
+		if err != nil {
+			log.Println("send email error:", err)
+			return nil, err
+		}
+
+		// Lưu OTP vào Redis với thời hạn 5 phút
+		if err := u.cache.Set(c, keyRedis, code, time.Duration(5)*time.Minute).Err(); err != nil {
+			log.Println("set data redis error:", err)
+			return nil, err
+		}
+	} else if err != nil {
+		log.Println("Redis error:", err)
+		return nil, errors.New(utils.E_internal_error)
+	}
+
+	// Trả về thời gian sống còn lại của OTP
+	ttl, err := u.cache.TTL(ctx, keyRedis).Result()
+	if err != nil {
+		log.Println("err", err)
+		return nil, errors.New(utils.E_internal_error)
+	}
+
+	return &common.TTL{
+		Ttl: int64(ttl.Seconds()),
+	}, nil
+}
+
+func (u *User) ResetPassword(ctx context.Context, req *pb.User) (*common.Empty, error) {
+	if req.GetEmail() == "" {
+		return nil, errors.New(utils.E_invalid_email)
+	}
+	if req.GetVerifyOtp() == "" {
+		return nil, errors.New(utils.E_invalid_otp)
+	}
+	if req.GetPassword() == "" {
+		return nil, errors.New(utils.E_invalid_password)
+	}
+
+	// Kiểm tra user có tồn tại không
+	user, err := u.Db.GetUser(&pb.UserRequest{Email: req.GetEmail()})
+	if err != nil {
+		return nil, errors.New(utils.E_not_found_user)
+	}
+
+	// Kiểm tra OTP từ Redis
+	c, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	keyRedis := fmt.Sprintf("reset_password:%s", req.GetEmail())
+	otp, err := u.cache.Get(c, keyRedis).Result()
+	if err == redis.Nil {
+		return nil, errors.New(utils.E_verify_otp_incorrect)
+	} else if err != nil {
+		log.Println("Redis error:", err)
+		return nil, errors.New(utils.E_internal_error)
+	}
+
+	// So sánh OTP
+	if otp != req.GetVerifyOtp() {
+		return nil, errors.New(utils.E_verify_otp_incorrect)
+	}
+
+	// Hash password mới trước khi lưu
+	hashedPassword, err := utils.HashPassword(req.GetPassword())
+	if err != nil {
+		log.Println("hash password error:", err)
+		return nil, errors.New(utils.E_internal_error)
+	}
+
+	// Cập nhật password mới
+	user.Password = hashedPassword
+	user.UpdatedAt = time.Now().Unix()
+	if err := u.Db.UpdateUser(user, &pb.User{Id: user.GetId()}); err != nil {
+		return nil, errors.New(utils.E_can_not_update)
+	}
+
+	// Xóa OTP khỏi Redis sau khi sử dụng
+	_ = u.cache.Del(c, keyRedis).Err()
+
+	return &common.Empty{}, nil
 }
