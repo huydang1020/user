@@ -348,8 +348,8 @@ func (u *User) CreateOrderPlanVNpay(ctx context.Context, req *pb.OrderPlan) (*co
 			log.Println("get partner by id error:", err)
 			return nil, errors.New(utils.E_internal_error)
 		}
-
-		oldPrice := getPrice(partner.Plan.Prices, partner.PlanType)
+		oldPlan := order.UpdatePlan.PlanOld
+		oldPrice := getPrice(oldPlan.Prices, partner.PlanType)
 		newPrice := getPrice(newPlan.Prices, order.Type)
 
 		currentExpiredAt := time.Unix(partner.PlanExpiredAt, 0)
