@@ -148,11 +148,6 @@ func (u *User) handleCreateNew(user *pb.User, newPrice int64, planType string) (
 		return 0, nil, errors.New(utils.E_already_partner)
 	}
 
-	// Kiểm tra planType hợp lệ (tháng hoặc năm)
-	if planType != "tháng" && planType != "năm" {
-		return 0, nil, errors.New(utils.E_invalid_plan_type)
-	}
-
 	return newPrice, nil, nil
 }
 
@@ -168,7 +163,7 @@ func (u *User) handleRenew(user *pb.User, newPlan *pb.Plan, newPrice int64, newP
 	}
 
 	// Lấy planType hiện tại từ partner
-	currentPlanType := partner.Type
+	currentPlanType := partner.PlanType
 	currentPrice := getPrice(currentPlan.Prices, currentPlanType)
 	if currentPrice == 0 {
 		return 0, nil, errors.New(utils.E_invalid_plan_type)
@@ -248,6 +243,7 @@ func max(a, b int64) int64 {
 }
 
 func getPrice(prices []*pb.Price, planType string) int64 {
+	log.Println("planType", planType)
 	for _, price := range prices {
 		if price.Type == planType {
 			return price.Price
