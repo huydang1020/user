@@ -180,19 +180,20 @@ func (u *User) handleRenew(user *pb.User, newPlan *pb.Plan, newPrice int64, newP
 		return newPrice, planUpdate, nil
 	}
 
-	// Nếu renew lên gói cao hơn hoặc thay đổi loại gói (tính toán chênh lệch)
-	adjustedPrice, err := u.calculatePriceDifference(
-		currentPrice,
-		newPrice,
-		partner.PlanExpiredAt,
-		currentPlanType,
-		newPlanType,
-	)
-	if err != nil {
-		return 0, nil, err
-	}
+	// Nếu renew lên gói cao hơn hoặc thay đổi loại gói
+	return newPrice, planUpdate, nil
+	// adjustedPrice, err := u.calculatePriceDifference(
+	// 	currentPrice,
+	// 	newPrice,
+	// 	partner.PlanExpiredAt,
+	// 	currentPlanType,
+	// 	newPlanType,
+	// )
+	// if err != nil {
+	// 	return 0, nil, err
+	// }
 
-	return adjustedPrice, planUpdate, nil
+	// return adjustedPrice, planUpdate, nil
 }
 
 // Helper functions
@@ -214,33 +215,33 @@ func (u *User) getCurrentPlanInfo(partnerId string) (*pb.Partner, *pb.Plan, erro
 	return partner, currentPlan, nil
 }
 
-func (u *User) calculatePriceDifference(currentPrice, newPrice int64, expiredAt int64, currentPlanType, newPlanType string) (int64, error) {
-	remainingDays := time.Unix(expiredAt, 0).Sub(time.Now()).Hours() / 24
-	if remainingDays <= 0 {
-		return newPrice, nil
-	}
+// func (u *User) calculatePriceDifference(currentPrice, newPrice int64, expiredAt int64, currentPlanType, newPlanType string) (int64, error) {
+// 	remainingDays := time.Until(time.Unix(expiredAt, 0)).Hours() / 24
+// 	if remainingDays <= 0 {
+// 		return newPrice, nil
+// 	}
 
-	// Tính toán số ngày còn lại theo đơn vị của gói cũ
-	var remainingCredit int64
-	if currentPlanType == "tháng" {
-		remainingCredit = (currentPrice * int64(remainingDays)) / 30 // 1 tháng = 30 ngày
-	} else { // "năm"
-		remainingCredit = (currentPrice * int64(remainingDays)) / 365 // 1 năm = 365 ngày
-	}
+// 	// Tính toán số ngày còn lại theo đơn vị của gói cũ
+// 	var remainingCredit int64
+// 	if currentPlanType == "tháng" {
+// 		remainingCredit = (currentPrice * int64(remainingDays)) / 30 // 1 tháng = 30 ngày
+// 	} else { // "năm"
+// 		remainingCredit = (currentPrice * int64(remainingDays)) / 365 // 1 năm = 365 ngày
+// 	}
 
-	// Nếu cùng loại gói (tháng-tháng hoặc năm-năm)
-	if currentPlanType == newPlanType {
-		return max(newPrice-remainingCredit, 0), nil
-	}
-	return newPrice, nil
-}
+// 	// Nếu cùng loại gói (tháng-tháng hoặc năm-năm)
+// 	if currentPlanType == newPlanType {
+// 		return max(newPrice-remainingCredit, 0), nil
+// 	}
+// 	return newPrice, nil
+// }
 
-func max(a, b int64) int64 {
-	if a > b {
-		return a
-	}
-	return b
-}
+// func max(a, b int64) int64 {
+// 	if a > b {
+// 		return a
+// 	}
+// 	return b
+// }
 
 func getPrice(prices []*pb.Price, planType string) int64 {
 	log.Println("planType", planType)
@@ -341,6 +342,13 @@ func (u *User) CreateOrderPlanVNpay(ctx context.Context, req *pb.OrderPlan) (*co
 			return nil, errors.New(utils.E_internal_error)
 		}
 
+		// Gửi email thông báo
+		req.UserId = order.UserId
+		if err := u.SendEmailCreatePartner(req, ACCEPT, ""); err != nil {
+			log.Println("send email create partner error:", err)
+			return nil, errors.New(utils.E_internal_error)
+		}
+
 	} else if order.Action == pb.OrderPlan_renew.String() {
 		// Xử lý renew: thời gian hết hạn tính từ ngày hết hạn hiện tại hoặc now nếu đã hết hạn
 		partner, err := u.Db.GetPartner(&pb.PartnerRequest{Id: user.PartnerId})
@@ -390,15 +398,15 @@ func (u *User) CreateOrderPlanVNpay(ctx context.Context, req *pb.OrderPlan) (*co
 			log.Println("update partner error:", err)
 			return nil, errors.New(utils.E_internal_error)
 		}
+		// Gửi email thông báo
+		order.Plan = newPlan
+		order.EndDate = planExpiredAt
+		if err := u.SendEmailRenewPartner(order); err != nil {
+			log.Println("send email create partner error:", err)
+			return nil, errors.New(utils.E_internal_error)
+		}
 	} else {
 		return nil, errors.New(utils.E_invalid_action_type)
-	}
-
-	// Gửi email thông báo
-	req.UserId = order.UserId
-	if err := u.SendEmailCreatePartner(req, ACCEPT, ""); err != nil {
-		log.Println("send email create partner error:", err)
-		return nil, errors.New(utils.E_internal_error)
 	}
 
 	// Xóa dữ liệu redis sau khi đã lưu vào database
@@ -508,11 +516,43 @@ func (u *User) SendEmailCreatePartner(re *pb.OrderPlan, action, reasonReject str
 	for k, v := range metric {
 		bodyMail = strings.Replace(bodyMail, "{{"+k+"}}", v, -1)
 	}
-	err = utils.SendEmailPartnerRegistration(
+	err = utils.SendEmailPartner(
 		config.MailKey,
 		config.MailUrl,
 		user.GetEmail(),
-		action,
+		subject,
+		bodyMail,
+	)
+	return err
+}
+
+func (u *User) SendEmailRenewPartner(re *pb.OrderPlan) error {
+	user, err := u.Db.GetUser(&pb.UserRequest{Id: re.GetUserId()})
+	if err != nil {
+		log.Println("get user err:", err)
+		return err
+	}
+	var bin []byte
+	subject := "🎉 Chúc mừng! Bạn đã gia hạn đăng ký bán hàng thành công!"
+	log.Println("Gửi mail:", user.GetEmail())
+	bodyMail := string(bin)
+	plan := re.Plan
+	t := time.Unix(re.EndDate, 0)
+	metric := map[string]string{
+		"fullname":     user.GetFullName(),
+		"packageName":  plan.Name,
+		"duration":     "1 " + re.Type,
+		"expiryDate":   t.Format("2006-01-02 15:04:05"),
+		"productLimit": fmt.Sprintf("%d", plan.MaxProductsPerStore),
+		"storeLimit":   fmt.Sprintf("%d", plan.MaxStoresAllowed),
+	}
+	for k, v := range metric {
+		bodyMail = strings.Replace(bodyMail, "{{"+k+"}}", v, -1)
+	}
+	err = utils.SendEmailPartner(
+		config.MailKey,
+		config.MailUrl,
+		user.GetEmail(),
 		subject,
 		bodyMail,
 	)

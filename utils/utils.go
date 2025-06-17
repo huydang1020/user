@@ -54,7 +54,7 @@ func HashPassword(password string) (string, error) {
 	return string(hash), nil
 }
 
-func Include (slice []string, item string) bool {
+func Include(slice []string, item string) bool {
 	for _, v := range slice {
 		if v == item {
 			return true
@@ -156,7 +156,7 @@ func SendEmail(apiKey, url, to, subject, code string) error {
 	return nil
 }
 
-func SendEmailPartnerRegistration(apiKey, url, to, status, subject, content string) error {
+func SendEmailPartner(apiKey, url, to, subject, content string) error {
 	payload := map[string]interface{}{
 		"sender": map[string]string{
 			"name":  "Huy Shop",

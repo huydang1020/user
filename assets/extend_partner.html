@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Gia hạn đăng ký bán hàng thành công - Huy Shop</title>
+  </head>
+  <body
+    style="
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      background: #f8f9fa;
+    "
+  >
+    <table
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      style="
+        max-width: 600px;
+        margin: 0 auto;
+        background: #ffffff;
+        border-radius: 10px;
+        overflow: hidden;
+      "
+    >
+      <tr>
+        <td
+          style="
+            background-color: #764ba2;
+            padding: 30px;
+            text-align: center;
+            color: white;
+          "
+        >
+          <table
+            cellpadding="0"
+            cellspacing="0"
+            width="100%"
+            style="margin-bottom: 20px"
+          >
+            <tr>
+              <td align="center">
+                <div
+                  style="
+                    display: inline-block;
+                    vertical-align: middle;
+                    background-color: #5b21b6;
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 6px;
+                    line-height: 32px;
+                    text-align: center;
+                    color: white;
+                    font-weight: bold;
+                  "
+                >
+                  H
+                </div>
+                <span
+                  style="
+                    display: inline-block;
+                    vertical-align: middle;
+                    font-size: 24px;
+                    font-weight: bold;
+                    margin-left: 12px;
+                  "
+                  >HuyShop</span
+                >
+              </td>
+            </tr>
+          </table>
+          <h1 style="margin: 0; font-size: 24px">
+            🎉 Gia hạn đăng ký bán hàng thành công!
+          </h1>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 30px">
+          <div
+            style="
+              background: #ff9800;
+              color: white;
+              padding: 10px 20px;
+              border-radius: 25px;
+              display: inline-block;
+              margin-bottom: 20px;
+              font-weight: bold;
+            "
+          >
+            🔄 ĐÃ GIA HẠN
+          </div>
+
+          <h2 style="margin-top: 0">Xin chào {{fullname}}!</h2>
+
+          <p>
+            Chúng tôi vui mừng thông báo rằng gói bán hàng của bạn đã được
+            <strong>gia hạn thành công</strong>!
+          </p>
+
+          <table
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            style="
+              background: #ffffff;
+              border-left: 4px solid #ff9800;
+              padding: 20px;
+              margin: 20px 0;
+              border-collapse: collapse;
+            "
+          >
+            <tr>
+              <td colspan="2">
+                <h3 style="color: #ff9800; margin-top: 0; padding-left: 5px">
+                  Thông tin gói bán hàng:
+                </h3>
+              </td>
+            </tr>
+            <tr>
+              <td
+                style="
+                  padding: 8px 0;
+                  border-bottom: 1px solid #eee;
+                  width: 40%;
+                  padding-left: 5px;
+                "
+              >
+                <strong>Tên gói:</strong>
+              </td>
+              <td
+                style="
+                  padding: 8px 0;
+                  border-bottom: 1px solid #eee;
+                  padding-left: 5px;
+                "
+              >
+                {{packageName}}
+              </td>
+            </tr>
+            <tr>
+              <td
+                style="
+                  padding: 8px 0;
+                  border-bottom: 1px solid #eee;
+                  padding-left: 5px;
+                "
+              >
+                <strong>Thời hạn:</strong>
+              </td>
+              <td
+                style="
+                  padding: 8px 0;
+                  border-bottom: 1px solid #eee;
+                  padding-left: 5px;
+                "
+              >
+                {{duration}} tháng
+              </td>
+            </tr>
+            <!-- <tr>
+              <td
+                style="
+                  padding: 8px 0;
+                  border-bottom: 1px solid #eee;
+                  padding-left: 5px;
+                "
+              >
+                <strong>Ngày bắt đầu:</strong>
+              </td>
+              <td
+                style="
+                  padding: 8px 0;
+                  border-bottom: 1px solid #eee;
+                  padding-left: 5px;
+                "
+              >
+                {{startDate}}
+              </td>
+            </tr> -->
+            <tr>
+              <td style="padding: 8px 0; padding-left: 5px">
+                <strong>Ngày hết hạn:</strong>
+              </td>
+              <td style="padding: 8px 0">{{expiryDate}}</td>
+            </tr>
+          </table>
+
+          <h3>🎁 Đặc quyền gói {{packageName}}:</h3>
+          <ul>
+            <li>Tối đa {{productLimit}} sản phẩm/cửa hàng</li>
+            <li>{{storeLimit}} cửa hàng</li>
+            <li>Hỗ trợ ưu tiên 24/7</li>
+            <li>Quảng cáo miễn phí trị giá 1.000.000 VNĐ</li>
+          </ul>
+
+          <p style="text-align: center; margin: 30px 0">
+            <a
+              href="#"
+              style="
+                background: #007bff;
+                color: white;
+                text-decoration: none;
+                padding: 15px 30px;
+                border-radius: 5px;
+                display: inline-block;
+              "
+              >🏪 Vào trang quản lý shop</a
+            >
+          </p>
+
+          <!-- <div
+            style="
+              background: #fff8e1;
+              padding: 15px;
+              border-radius: 5px;
+              margin: 20px 0;
+            "
+          >
+            <p>
+              <strong>⏳ Lưu ý:</strong> Gói của bạn sẽ tự động gia hạn trước 7
+              ngày hết hạn. Để thay đổi gói hoặc hủy tự động gia hạn, vui lòng
+              truy cập mục <strong>Cài đặt tài khoản</strong>.
+            </p>
+          </div> -->
+        </td>
+      </tr>
+      <tr>
+        <td
+          style="
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            padding: 20px;
+          "
+        >
+          <p>Cảm ơn bạn đã tiếp tục đồng hành cùng Huy Shop!</p>
+          <p>
+            Nếu cần hỗ trợ, hãy liên hệ:
+            <a href="mailto:support@huyshop.com" style="color: #007bff"
+              >support@huyshop.com</a
+            >
+          </p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
