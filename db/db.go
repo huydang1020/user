@@ -330,40 +330,74 @@ func (d *DB) ListPointExchange(req *pb.PointExchangeRequest) ([]*pb.PointExchang
 func (d *DB) TranCreatePointExchange(req *pb.PointExchange) error {
 	ss := d.engine.NewSession()
 	defer ss.Close()
+
 	if err := ss.Begin(); err != nil {
 		return err
 	}
-	if d.IsUserExisted(&pb.User{Id: req.ReceiverId}) {
+
+	// Kiểm tra user có tồn tại không
+	if !d.IsUserExisted(&pb.User{Id: req.ReceiverId}) {
 		ss.Rollback()
 		return errors.New(utils.E_user_not_existed)
 	}
+
+	// Kiểm tra user point có tồn tại không
 	up, err := d.GetUserPoint(&pb.UserPoint{UserId: req.ReceiverId})
 	if err != nil {
-		ss.Rollback()
-		return err
-	}
-	if req.GetPoints() != 0 {
+		// Nếu không tồn tại và là giao dịch trừ điểm -> lỗi
+		if req.GetPoints() < 0 {
+			ss.Rollback()
+			return errors.New(utils.E_not_enough_points)
+		}
+
+		// Nếu là giao dịch cộng điểm thì tạo mới
+		up = &pb.UserPoint{
+			UserId:      req.ReceiverId,
+			Points:      req.GetPoints(),
+			OldPoints:   0,
+			TotalPoints: req.GetPoints(),
+			CreatedAt:    time.Now().Unix(),
+			UpdateAt:    time.Now().Unix(),
+		}
+		if _, err := ss.Insert(up); err != nil {
+			ss.Rollback()
+			return err
+		}
+	} else {
+		// Nếu là giao dịch trừ điểm, kiểm tra đủ điểm không
+		if req.GetPoints() < 0 && up.Points < -req.GetPoints() {
+			ss.Rollback()
+			return errors.New(utils.E_not_enough_points)
+		}
+
+		// Cập nhật điểm
 		up.OldPoints = up.Points
 		up.Points += req.GetPoints()
-		if up.Points > 0 {
+
+		// Chỉ cộng vào TotalPoints nếu là giao dịch cộng điểm
+		if req.GetPoints() > 0 {
 			up.TotalPoints += req.GetPoints()
 		}
+
 		up.UpdateAt = time.Now().Unix()
-		if err := d.UpdateUserPoint(up, &pb.UserPoint{UserId: req.ReceiverId}); err != nil {
+
+		if _, err := ss.Where("user_id = ?", req.ReceiverId).Update(up); err != nil {
 			ss.Rollback()
 			return err
 		}
 	}
+
+	// Tạo giao dịch point exchange
 	if _, err := ss.Insert(req); err != nil {
 		ss.Rollback()
 		return err
 	}
+
 	if err := ss.Commit(); err != nil {
 		return err
 	}
 	return nil
 }
-
 func (d *DB) CreateStore(store *pb.Store) error {
 	c, err := d.engine.Insert(store)
 	if err != nil {

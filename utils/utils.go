@@ -22,7 +22,7 @@ func MakeUserId() string {
 	return "user" + xid.New().String()
 }
 
-func MakePointExchange() string {
+func MakePointExchangeId() string {
 	return "pex" + xid.New().String()
 }
 

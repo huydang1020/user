@@ -36,11 +36,8 @@ func (u *User) CreateOrderPlan(ctx context.Context, req *pb.OrderPlan) (*pb.Orde
 	if req.UserId == "" {
 		return nil, errors.New(utils.E_invalid_user_id)
 	}
-	if req.Type != "tháng" && req.Type != "năm" {
+	if req.PlanType != "tháng" && req.PlanType != "năm" {
 		return nil, errors.New(utils.E_invalid_plan_type)
-	}
-	if req.Action == "" {
-		return nil, errors.New(utils.E_invalid_action_type)
 	}
 	if req.VnpayReturnUrl == "" {
 		return nil, errors.New(utils.E_invalid_vnpay_return_url)
@@ -61,14 +58,18 @@ func (u *User) CreateOrderPlan(ctx context.Context, req *pb.OrderPlan) (*pb.Orde
 	if plan == nil {
 		return nil, errors.New(utils.E_plan_not_found)
 	}
-	totalMoney, uPlan, err := u.calculatePayment(user, plan, req.Action, req.Type)
+	totalMoney, uPlan, action, err := u.calculatePayment(user, plan, req.Type, req.PlanType)
 	if err != nil {
 		log.Println("calculate payment error:", err)
 		return nil, err
 	}
 	if totalMoney == 0 {
-		return nil, errors.New(utils.E_invalid_prices)
+		// Áp dụng phí thủ tục tối thiểu
+		data := os.Getenv("MIN_PROCESSING_FEE")
+		minfee, _ := strconv.Atoi(data)
+		totalMoney = int64(minfee)
 	}
+	req.Type = action
 	req.UpdatePlan = uPlan
 	log.Println("totalMoney:", totalMoney, "plan:", plan.GetId(), "type:", req.Type)
 	log.Println("123: ", fmt.Sprintf("%d", totalMoney))
@@ -117,83 +118,70 @@ func (u *User) CreateOrderPlan(ctx context.Context, req *pb.OrderPlan) (*pb.Orde
 		log.Println("set data redis error:", err)
 		return nil, errors.New(utils.E_internal_error)
 	}
-	return &pb.OrderPlan{VnpRedirectUrl: vnpRedirectURL, UpdatePlan: uPlan}, nil
+	return &pb.OrderPlan{VnpRedirectUrl: vnpRedirectURL}, nil
 }
 
-func (u *User) calculatePayment(user *pb.User, newPlan *pb.Plan, action, newPlanType string) (int64, *pb.UpdatePlan, error) {
+func (u *User) calculatePayment(user *pb.User, newPlan *pb.Plan, action, newPlanType string) (int64, *pb.UpdatePlan, string, error) {
 	if newPlan == nil {
-		return 0, nil, errors.New(utils.E_plan_not_found)
+		return 0, nil, "", errors.New(utils.E_plan_not_found)
 	}
 
 	newPrice := getPrice(newPlan.Prices, newPlanType)
 	if newPrice == 0 {
-		return 0, nil, errors.New(utils.E_invalid_plan_type)
+		return 0, nil, "", errors.New(utils.E_invalid_plan_type)
 	}
 
 	// Xử lý theo từng action type
 	switch action {
-	case pb.OrderPlan_create.String():
-		return u.handleCreateNew(user, newPrice, newPlanType)
+	case "": // user khi mới đăng ký tài khoản seller
+		if user.RoleId != ROLE_CUSTOMER {
+			return 0, nil, "", errors.New(utils.E_already_partner)
+		}
 
-	case pb.OrderPlan_renew.String():
+		return newPrice, nil, "", nil
+
+	case pb.OrderPlan_renew.String(): // bao gồm cả update và renew(khi admin tạo đơn)
 		return u.handleRenew(user, newPlan, newPrice, newPlanType)
 
 	default:
-		return 0, nil, errors.New(utils.E_invalid_action_type)
+		return 0, nil, "", errors.New(utils.E_invalid_action_type)
 	}
 }
 
-func (u *User) handleCreateNew(user *pb.User, newPrice int64, planType string) (int64, *pb.UpdatePlan, error) {
-	if user.RoleId != ROLE_CUSTOMER {
-		return 0, nil, errors.New(utils.E_already_partner)
-	}
-
-	return newPrice, nil, nil
-}
-
-func (u *User) handleRenew(user *pb.User, newPlan *pb.Plan, newPrice int64, newPlanType string) (int64, *pb.UpdatePlan, error) {
+// Xử lý renew (đăng ký lại cùng gói)
+func (u *User) handleRenew(user *pb.User, newPlan *pb.Plan, newPrice int64, newPlanType string) (int64, *pb.UpdatePlan, string, error) {
 	partner, currentPlan, err := u.getCurrentPlanInfo(user.PartnerId)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, "", err
 	}
-
-	// Kiểm tra planType hợp lệ (tháng hoặc năm)
-	if newPlanType != "tháng" && newPlanType != "năm" {
-		return 0, nil, errors.New(utils.E_invalid_plan_type)
-	}
-
-	// Lấy planType hiện tại từ partner
 	currentPlanType := partner.PlanType
 	currentPrice := getPrice(currentPlan.Prices, currentPlanType)
-	if currentPrice == 0 {
-		return 0, nil, errors.New(utils.E_invalid_plan_type)
-	}
 
-	planUpdate := &pb.UpdatePlan{
+	if newPlanType != partner.PlanType || newPrice != currentPrice { // xử lý khi gói cũ khác gói mới
+		// Calculate prorated difference if upgrading before expiration
+		adjustedPrice, err := u.calculatePriceDifference(
+			currentPrice,
+			newPrice,
+			partner.PlanExpiredAt,
+			currentPlanType,
+			newPlanType,
+		)
+		if err != nil {
+			return 0, nil, "", err
+		}
+
+		return adjustedPrice, &pb.UpdatePlan{
+			PlanOld:         currentPlan,
+			PlanNew:         newPlan,
+			RemainingAmount: adjustedPrice,
+		}, pb.OrderPlan_upgrade.String(), nil
+	}
+	// gia hạn gói cũ
+	return newPrice, &pb.UpdatePlan{
 		PlanOld:         currentPlan,
 		PlanNew:         newPlan,
 		RemainingAmount: newPrice,
-	}
-
-	// Nếu renew cùng gói hoặc gói rẻ hơn
-	if newPrice <= currentPrice && newPlanType == currentPlanType {
-		return newPrice, planUpdate, nil
-	}
-
-	// Nếu renew lên gói cao hơn hoặc thay đổi loại gói
-	return newPrice, planUpdate, nil
-	// adjustedPrice, err := u.calculatePriceDifference(
-	// 	currentPrice,
-	// 	newPrice,
-	// 	partner.PlanExpiredAt,
-	// 	currentPlanType,
-	// 	newPlanType,
-	// )
-	// if err != nil {
-	// 	return 0, nil, err
-	// }
-
-	// return adjustedPrice, planUpdate, nil
+	}, pb.OrderPlan_renew.String(), nil
 }
 
 // Helper functions
@@ -215,33 +203,63 @@ func (u *User) getCurrentPlanInfo(partnerId string) (*pb.Partner, *pb.Plan, erro
 	return partner, currentPlan, nil
 }
 
-// func (u *User) calculatePriceDifference(currentPrice, newPrice int64, expiredAt int64, currentPlanType, newPlanType string) (int64, error) {
-// 	remainingDays := time.Until(time.Unix(expiredAt, 0)).Hours() / 24
-// 	if remainingDays <= 0 {
-// 		return newPrice, nil
-// 	}
+func (u *User) calculatePriceDifference(currentPrice, newPrice int64, expiredAt int64, currentPlanType, newPlanType string) (int64, error) {
+	now := time.Now()
+	expiryTime := time.Unix(expiredAt, 0)
 
-// 	// Tính toán số ngày còn lại theo đơn vị của gói cũ
-// 	var remainingCredit int64
-// 	if currentPlanType == "tháng" {
-// 		remainingCredit = (currentPrice * int64(remainingDays)) / 30 // 1 tháng = 30 ngày
-// 	} else { // "năm"
-// 		remainingCredit = (currentPrice * int64(remainingDays)) / 365 // 1 năm = 365 ngày
-// 	}
+	// Nếu đã hết hạn, trả về giá mới toàn bộ
+	if now.After(expiryTime) {
+		return newPrice, nil
+	}
 
-// 	// Nếu cùng loại gói (tháng-tháng hoặc năm-năm)
-// 	if currentPlanType == newPlanType {
-// 		return max(newPrice-remainingCredit, 0), nil
-// 	}
-// 	return newPrice, nil
-// }
+	// Tính số ngày còn lại chính xác
+	remainingDuration := expiryTime.Sub(now)
+	remainingDays := int64(remainingDuration.Hours() / 24)
+	if remainingDays <= 0 {
+		return newPrice, nil
+	}
 
-// func max(a, b int64) int64 {
-// 	if a > b {
-// 		return a
-// 	}
-// 	return b
-// }
+	// Tính số ngày trong tháng/năm hiện tại để tính tỷ lệ chính xác
+	var (
+		remainingCredit int64
+		daysInPeriod    int64
+	)
+
+	switch currentPlanType {
+	case "tháng":
+		// Tính số ngày chính xác của tháng hiện tại
+		_, _, days := expiryTime.Date()
+		daysInPeriod = int64(days)
+		remainingCredit = (currentPrice * remainingDays) / daysInPeriod
+
+	case "năm":
+		// Kiểm tra năm nhuận
+		year := expiryTime.Year()
+		daysInPeriod = 365
+		if (year%4 == 0 && year%100 != 0) || year%400 == 0 {
+			daysInPeriod = 366
+		}
+		remainingCredit = (currentPrice * remainingDays) / daysInPeriod
+
+	default:
+		return 0, errors.New(utils.E_invalid_plan_type)
+	}
+
+	// Nếu cùng loại gói (tháng-tháng hoặc năm-năm)
+	if currentPlanType == newPlanType {
+		return max(newPrice-remainingCredit, 0), nil
+	}
+
+	// Nếu khác loại gói (vd: nâng cấp từ tháng lên năm)
+	return newPrice, nil
+}
+
+func max(a, b int64) int64 {
+	if a > b {
+		return a
+	}
+	return b
+}
 
 func getPrice(prices []*pb.Price, planType string) int64 {
 	log.Println("planType", planType)
@@ -299,7 +317,7 @@ func (u *User) CreateOrderPlanVNpay(ctx context.Context, req *pb.OrderPlan) (*co
 	}
 
 	// Kiểm tra planType hợp lệ
-	if order.Type != "tháng" && order.Type != "năm" {
+	if order.PlanType != "tháng" && order.PlanType != "năm" {
 		return nil, errors.New(utils.E_invalid_plan_type)
 	}
 
@@ -307,7 +325,7 @@ func (u *User) CreateOrderPlanVNpay(ctx context.Context, req *pb.OrderPlan) (*co
 	var planExpiredAt int64
 	now := time.Now()
 
-	if order.Action == pb.OrderPlan_create.String() {
+	if order.Type == "" {
 		// Xử lý tạo mới: thời gian hết hạn tính từ now
 		switch order.Type {
 		case "tháng":
@@ -325,7 +343,7 @@ func (u *User) CreateOrderPlanVNpay(ctx context.Context, req *pb.OrderPlan) (*co
 			PlanExpiredAt:       planExpiredAt,
 			MaxStoresAllowed:    newPlan.GetMaxStoresAllowed(),
 			MaxProductsPerStore: newPlan.GetMaxProductsPerStore(),
-			PlanType:            order.Type,
+			PlanType:            order.PlanType,
 			CreatedAt:           now.Unix(),
 		}
 
@@ -349,16 +367,13 @@ func (u *User) CreateOrderPlanVNpay(ctx context.Context, req *pb.OrderPlan) (*co
 			return nil, errors.New(utils.E_internal_error)
 		}
 
-	} else if order.Action == pb.OrderPlan_renew.String() {
+	} else if order.Type == pb.OrderPlan_renew.String() || order.Type == pb.OrderPlan_upgrade.String() {
 		// Xử lý renew: thời gian hết hạn tính từ ngày hết hạn hiện tại hoặc now nếu đã hết hạn
 		partner, err := u.Db.GetPartner(&pb.PartnerRequest{Id: user.PartnerId})
 		if err != nil || partner == nil {
 			log.Println("get partner by id error:", err)
 			return nil, errors.New(utils.E_internal_error)
 		}
-		oldPlan := order.UpdatePlan.PlanOld
-		oldPrice := getPrice(oldPlan.Prices, partner.PlanType)
-		newPrice := getPrice(newPlan.Prices, order.Type)
 
 		currentExpiredAt := time.Unix(partner.PlanExpiredAt, 0)
 		if currentExpiredAt.Before(now) {
@@ -366,7 +381,7 @@ func (u *User) CreateOrderPlanVNpay(ctx context.Context, req *pb.OrderPlan) (*co
 		}
 
 		// Logic xử lý thời gian
-		if newPrice <= oldPrice && order.Type == partner.PlanType {
+		if order.Type == pb.OrderPlan_renew.String() && order.Type == partner.PlanType {
 			// TRƯỜNG HỢP 1: Giữ nguyên gói hoặc gói rẻ hơn (cùng loại)
 			// Cộng dồn thời gian từ ngày hết hạn cũ
 			switch order.Type {
@@ -392,7 +407,7 @@ func (u *User) CreateOrderPlanVNpay(ctx context.Context, req *pb.OrderPlan) (*co
 			MaxStoresAllowed:    newPlan.MaxStoresAllowed,
 			MaxProductsPerStore: newPlan.MaxProductsPerStore,
 			PlanExpiredAt:       planExpiredAt,
-			PlanType:            order.Type,
+			PlanType:            order.PlanType,
 			UpdatedAt:           now.Unix(),
 		}, &pb.Partner{Id: user.PartnerId}); err != nil {
 			log.Println("update partner error:", err)

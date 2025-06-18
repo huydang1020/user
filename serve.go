@@ -7,9 +7,11 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 	pb "github.com/huyshop/header/user"
 	"github.com/huyshop/user/db"
+	"github.com/huyshop/user/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
@@ -41,6 +43,7 @@ type IDatabase interface {
 	CreatePointExchange(req *pb.PointExchange) error
 	GetPointExchange(req *pb.PointExchange) (*pb.PointExchange, error)
 	ListPointExchange(req *pb.PointExchangeRequest) ([]*pb.PointExchange, error)
+	TranCreatePointExchange(req *pb.PointExchange) error
 
 	CreateStore(store *pb.Store) error
 	UpdateStore(updator, selector *pb.Store) error
@@ -124,43 +127,35 @@ func startGRPCServe(port string, p *User) error {
 	return serve.Serve(listen)
 }
 
-// func HTTPServe(p *User) error {
-// 	g := gin.New()
-// 	g.Use(gin.Recovery(), gin.Logger())
-// 	g.POST("/", func(c *gin.Context) {
-// 		c.JSON(200, "product service")
-// 	})
-// 	r1 := g.Group("/v1")
+func HTTPServe(p *User) error {
+	g := gin.New()
+	g.Use(gin.Recovery(), gin.Logger())
+	g.POST("/", func(c *gin.Context) {
+		c.JSON(200, "user service")
+	})
+	r1 := g.Group("/v1")
 
-// 	r1.GET("/partners", func(c *gin.Context) {
-// 		req := &pb.PartnerRequest{}
-// 		if err := c.BindQuery(req); err != nil {
-// 			c.JSON(400, gin.H{"error": "Invalid request"})
-// 			return
-// 		}
-// 		list, err := p.Db.ListPartner(req)
-// 		if err != nil {
-// 			c.JSON(500, gin.H{"error": utils.E_internal_error})
-// 			return
-// 		}
-// 		c.JSON(200, list)
+	r1.GET("/create-point-exchange", func(c *gin.Context) {
+		req := &pb.PointExchange{}
+		if err := c.BindQuery(req); err != nil {
+			c.JSON(400, gin.H{"error": "Invalid request"})
+			return
+		}
+		if req.ReceiverId == "" {
+			c.JSON(400, gin.H{"error": utils.E_invalid_receiver_id})
+			return
+		}
+		req.Id = utils.MakePointExchangeId()
+		req.CreatedAt = time.Now().Unix()
+		if err := p.Db.TranCreatePointExchange(req); err != nil {
+			log.Println("err: ", err)
+			c.JSON(400, gin.H{"error": utils.E_internal_error})
+			return
+		}
+		c.JSON(200, gin.H{"code": 0, "message": "success"})
 
-// 	})
+	})
 
-// 	r1.GET("/stores", func(c *gin.Context) {
-// 		req := &pb.StoreRequest{}
-// 		if err := c.BindQuery(req); err != nil {
-// 			c.JSON(400, gin.H{"error": "Invalid request"})
-// 			return
-// 		}
-// 		list, err := p.Db.ListStore(req)
-// 		if err != nil {
-// 			c.JSON(500, gin.H{"error": utils.E_internal_error})
-// 			return
-// 		}
-// 		c.JSON(200, list)
-// 	})
-
-// 	g.Run(":" + config.HttpPort)
-// 	return nil
-// }
+	g.Run(":" + config.HttpPort)
+	return nil
+}
