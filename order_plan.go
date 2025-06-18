@@ -133,7 +133,7 @@ func (u *User) calculatePayment(user *pb.User, newPlan *pb.Plan, action, newPlan
 
 	// Xử lý theo từng action type
 	switch action {
-	case "": // user khi mới đăng ký tài khoản seller
+	case pb.OrderPlan_create.String(): // user khi mới đăng ký tài khoản seller
 		if user.RoleId != ROLE_CUSTOMER {
 			return 0, nil, "", errors.New(utils.E_already_partner)
 		}
