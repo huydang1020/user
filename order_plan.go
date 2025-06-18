@@ -69,6 +69,7 @@ func (u *User) CreateOrderPlan(ctx context.Context, req *pb.OrderPlan) (*pb.Orde
 		minfee, _ := strconv.Atoi(data)
 		totalMoney = int64(minfee)
 	}
+	log.Println("action: ", action)
 	req.Type = action
 	req.UpdatePlan = uPlan
 	log.Println("totalMoney:", totalMoney, "plan:", plan.GetId(), "type:", req.Type)
@@ -134,11 +135,7 @@ func (u *User) calculatePayment(user *pb.User, newPlan *pb.Plan, action, newPlan
 	// Xử lý theo từng action type
 	switch action {
 	case pb.OrderPlan_create.String(): // user khi mới đăng ký tài khoản seller
-		if user.RoleId != ROLE_CUSTOMER {
-			return 0, nil, "", errors.New(utils.E_already_partner)
-		}
-
-		return newPrice, nil, "", nil
+		return newPrice, nil, pb.OrderPlan_create.String(), nil
 
 	case pb.OrderPlan_renew.String(): // bao gồm cả update và renew(khi admin tạo đơn)
 		return u.handleRenew(user, newPlan, newPrice, newPlanType)
@@ -309,7 +306,7 @@ func (u *User) CreateOrderPlanVNpay(ctx context.Context, req *pb.OrderPlan) (*co
 		log.Println("trans insert order err:", err)
 		return nil, errors.New(utils.E_internal_error)
 	}
-
+	log.Println("order: ", order)
 	newPlan, err := u.Db.GetPlan(&pb.PlansRequest{Id: order.PlanId})
 	if err != nil || newPlan == nil {
 		log.Println("get plan by id error:", err)
@@ -324,16 +321,16 @@ func (u *User) CreateOrderPlanVNpay(ctx context.Context, req *pb.OrderPlan) (*co
 	// Xử lý thời gian hết hạn
 	var planExpiredAt int64
 	now := time.Now()
-
-	if order.Type == "" {
+	log.Println("now: ", now)
+	if order.Type == pb.OrderPlan_create.String() {
 		// Xử lý tạo mới: thời gian hết hạn tính từ now
-		switch order.Type {
+		switch order.PlanType {
 		case "tháng":
 			planExpiredAt = now.AddDate(0, 1, 0).Unix()
 		case "năm":
 			planExpiredAt = now.AddDate(1, 0, 0).Unix()
 		}
-
+		log.Println("planExpiredAt", planExpiredAt)
 		partner := &pb.Partner{
 			Id:                  utils.MakePartnerId(),
 			Name:                user.GetFullName(),
@@ -384,7 +381,7 @@ func (u *User) CreateOrderPlanVNpay(ctx context.Context, req *pb.OrderPlan) (*co
 		if order.Type == pb.OrderPlan_renew.String() && order.Type == partner.PlanType {
 			// TRƯỜNG HỢP 1: Giữ nguyên gói hoặc gói rẻ hơn (cùng loại)
 			// Cộng dồn thời gian từ ngày hết hạn cũ
-			switch order.Type {
+			switch order.PlanType {
 			case "tháng":
 				planExpiredAt = currentExpiredAt.AddDate(0, 1, 0).Unix()
 			case "năm":
@@ -393,7 +390,7 @@ func (u *User) CreateOrderPlanVNpay(ctx context.Context, req *pb.OrderPlan) (*co
 		} else {
 			// TRƯỜNG HỢP 2: Nâng cấp gói hoặc đổi loại gói
 			// Tính từ thời điểm hiện tại
-			switch order.Type {
+			switch order.PlanType {
 			case "tháng":
 				planExpiredAt = now.AddDate(0, 1, 0).Unix()
 			case "năm":

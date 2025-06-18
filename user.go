@@ -213,14 +213,21 @@ func (u *User) SignInCustomer(ctx context.Context, req *pb.User) (*pb.SignInResp
 	if user.GetState() == pb.User_inactive.String() {
 		return nil, errors.New(utils.E_account_not_activated)
 	}
+	partner := &pb.Partner{}
+	if user.PartnerId != "" {
+		partner, err = u.Db.GetPartner(&pb.PartnerRequest{Id: user.GetPartnerId()})
+		if err != nil {
+			return nil, err
+		}
+	}
 	exprAct, _ := strconv.Atoi(config.JwtExpireAccessToken)
 	exprRft, _ := strconv.Atoi(config.JwtExpireRefreshToken)
-	access_token, err := jwt.GenerateAccessToken(user, &pb.Partner{}, time.Duration(exprAct), config.JwtSecretKey)
+	access_token, err := jwt.GenerateAccessToken(user, partner, time.Duration(exprAct), config.JwtSecretKey)
 	if err != nil {
 		log.Println("generate access token error:", err)
 		return nil, err
 	}
-	refresh_token, err := jwt.GenerateRefreshToken(user, &pb.Partner{}, time.Duration(exprRft), config.JwtSecretKey)
+	refresh_token, err := jwt.GenerateRefreshToken(user, partner, time.Duration(exprRft), config.JwtSecretKey)
 	if err != nil {
 		log.Println("generate refresh token error:", err)
 		return nil, err
