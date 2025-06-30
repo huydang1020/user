@@ -341,6 +341,8 @@ func (d *DB) TranCreatePointExchange(req *pb.PointExchange) error {
 		return errors.New(utils.E_user_not_existed)
 	}
 
+	now := time.Now().Unix()
+
 	// Kiểm tra user point có tồn tại không
 	up, err := d.GetUserPoint(&pb.UserPoint{UserId: req.ReceiverId})
 	if err != nil {
@@ -356,8 +358,8 @@ func (d *DB) TranCreatePointExchange(req *pb.PointExchange) error {
 			Points:      req.GetPoints(),
 			OldPoints:   0,
 			TotalPoints: req.GetPoints(),
-			CreatedAt:    time.Now().Unix(),
-			UpdateAt:    time.Now().Unix(),
+			CreatedAt:   now,
+			UpdateAt:    now,
 		}
 		if _, err := ss.Insert(up); err != nil {
 			ss.Rollback()
@@ -378,9 +380,7 @@ func (d *DB) TranCreatePointExchange(req *pb.PointExchange) error {
 		if req.GetPoints() > 0 {
 			up.TotalPoints += req.GetPoints()
 		}
-
-		up.UpdateAt = time.Now().Unix()
-
+		up.UpdateAt = now
 		if _, err := ss.Where("user_id = ?", req.ReceiverId).Update(up); err != nil {
 			ss.Rollback()
 			return err
@@ -398,6 +398,7 @@ func (d *DB) TranCreatePointExchange(req *pb.PointExchange) error {
 	}
 	return nil
 }
+
 func (d *DB) CreateStore(store *pb.Store) error {
 	c, err := d.engine.Insert(store)
 	if err != nil {

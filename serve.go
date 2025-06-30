@@ -130,14 +130,11 @@ func startGRPCServe(port string, p *User) error {
 func HTTPServe(p *User) error {
 	g := gin.New()
 	g.Use(gin.Recovery(), gin.Logger())
-	g.POST("/", func(c *gin.Context) {
-		c.JSON(200, "user service")
-	})
-	r1 := g.Group("/v1")
+	r1 := g.Group("/v1/user")
 
-	r1.GET("/create-point-exchange", func(c *gin.Context) {
+	r1.POST("/create-point-exchange", func(c *gin.Context) {
 		req := &pb.PointExchange{}
-		if err := c.BindQuery(req); err != nil {
+		if err := c.BindJSON(req); err != nil {
 			c.JSON(400, gin.H{"error": "Invalid request"})
 			return
 		}
@@ -149,7 +146,7 @@ func HTTPServe(p *User) error {
 		req.CreatedAt = time.Now().Unix()
 		if err := p.Db.TranCreatePointExchange(req); err != nil {
 			log.Println("err: ", err)
-			c.JSON(400, gin.H{"error": utils.E_internal_error})
+			c.JSON(400, gin.H{"error": err.Error()})
 			return
 		}
 		c.JSON(200, gin.H{"code": 0, "message": "success"})

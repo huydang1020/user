@@ -68,4 +68,5 @@ const (
 	E_invalid_vnpay_return_url        = "invalid_vnpay_return_url"
 	E_not_enough_points               = "not_enough_points"
 	E_invalid_receiver_id             = "invalid_receiver_id"
+	E_invalid_points                  = "invalid_points"
 )
