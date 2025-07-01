@@ -69,4 +69,9 @@ const (
 	E_not_enough_points               = "not_enough_points"
 	E_invalid_receiver_id             = "invalid_receiver_id"
 	E_invalid_points                  = "invalid_points"
+	E_not_found_user_address          = "not_found_user_address"
+	E_invalid_province                = "invalid_province"
+	E_invalid_district                = "invalid_district"
+	E_invalid_ward                    = "invalid_ward"
+	E_max_user_address                = "max_user_address"
 )

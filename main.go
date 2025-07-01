@@ -27,6 +27,7 @@ type Configs struct {
 	RedisDb               string
 	MailKey               string
 	MailUrl               string
+	MaxUserAddress        string
 }
 
 var config *Configs
@@ -50,6 +51,7 @@ func init() {
 		RedisDb:               os.Getenv("REDIS_DB"),
 		MailKey:               os.Getenv("BREVO_API_KEY"),
 		MailUrl:               os.Getenv("BREVO_URL"),
+		MaxUserAddress:        os.Getenv("MAX_USER_ADDRESS"),
 	}
 }
 

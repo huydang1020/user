@@ -46,6 +46,10 @@ func MakeOrderPlanId() string {
 	return "opl" + xid.New().String()
 }
 
+func MakeUserAddressId() string {
+	return "add" + xid.New().String()
+}
+
 func HashPassword(password string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), 10)
 	if err != nil {
@@ -105,8 +109,8 @@ func SortParams(params url.Values) url.Values {
 	return sortedParams
 }
 
-func SendEmail(apiKey, url, to, subject, code string) error {
-	bin, err := os.ReadFile("assets/confirm_email.html")
+func SendEmail(apiKey, url, to, subject, code, typeEmail string) error {
+	bin, err := os.ReadFile(typeEmail)
 	if err != nil {
 		log.Println("read file err:", err)
 		return err

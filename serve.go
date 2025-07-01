@@ -72,6 +72,14 @@ type IDatabase interface {
 	UpdateOrderPlan(updator, selector *pb.OrderPlan) error
 	CountOrderPlan(rq *pb.OrderPlanRequest) (int64, error)
 	DeleteOrderPlan(id string) error
+
+	CreateUserAddress(req *pb.UserAddress) error
+	UpdateUserAddress(updator, selector *pb.UserAddress) error
+	DeleteUserAddress(id string) error
+	IsExistUserAddress(id string) (bool, error)
+	ListUserAddress(rq *pb.UserAddressRequest) ([]*pb.UserAddress, error)
+	GetUserAddress(rq *pb.UserAddress) (*pb.UserAddress, error)
+	TranCreateUserAddress(req *pb.UserAddress, maxUserAddress int) error
 }
 
 func NewRedisCache(addr, pw string, db int) *redis.Client {

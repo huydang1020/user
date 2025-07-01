@@ -336,7 +336,7 @@ func (d *DB) TranCreatePointExchange(req *pb.PointExchange) error {
 	}
 
 	// Kiểm tra user có tồn tại không
-	if !d.IsUserExisted(&pb.User{Id: req.ReceiverId}) {
+	if _, err := d.GetUser(&pb.UserRequest{Id: req.ReceiverId}); err != nil {
 		ss.Rollback()
 		return errors.New(utils.E_user_not_existed)
 	}
@@ -346,6 +346,7 @@ func (d *DB) TranCreatePointExchange(req *pb.PointExchange) error {
 	// Kiểm tra user point có tồn tại không
 	up, err := d.GetUserPoint(&pb.UserPoint{UserId: req.ReceiverId})
 	if err != nil {
+		log.Println("err:", err)
 		// Nếu không tồn tại và là giao dịch trừ điểm -> lỗi
 		if req.GetPoints() < 0 {
 			ss.Rollback()
@@ -366,6 +367,9 @@ func (d *DB) TranCreatePointExchange(req *pb.PointExchange) error {
 			return err
 		}
 	} else {
+		log.Println("up:", up)
+		log.Println("req.GetPoints():", req.GetPoints())
+		log.Println("up.Points:", up.Points)
 		// Nếu là giao dịch trừ điểm, kiểm tra đủ điểm không
 		if req.GetPoints() < 0 && up.Points < -req.GetPoints() {
 			ss.Rollback()
@@ -778,4 +782,133 @@ func (d *DB) DeleteOrderPlan(id string) error {
 func (d *DB) IsExistOrderPlan(id string) (bool, error) {
 	ss := d.engine.Where("id = ?", id).Table(tblOrderPlan)
 	return ss.Exist()
+}
+
+func (d *DB) CreateUserAddress(req *pb.UserAddress) error {
+	c, err := d.engine.Table(tblUserAddress).Insert(req)
+	if err != nil {
+		return err
+	}
+	if c == 0 {
+		return errors.New(utils.E_can_not_insert)
+	}
+	return nil
+}
+
+func (d *DB) UpdateUserAddress(updated, selector *pb.UserAddress) error {
+	c, err := d.engine.Update(updated, selector)
+	if err != nil {
+		return err
+	}
+	if c == 0 {
+		log.Println("can_not_update")
+	}
+	return nil
+}
+
+func (d *DB) DeleteUserAddress(id string) error {
+	if id == "" {
+		return errors.New(utils.E_not_found_id)
+	}
+	_, err := d.engine.Table(tblUserAddress).Delete(&pb.UserAddress{Id: id})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *DB) IsExistUserAddress(id string) (bool, error) {
+	ss := d.engine.Where("id = ?", id).Table(tblUserAddress)
+	return ss.Exist()
+}
+
+func (d *DB) listUserAddressQuery(rq *pb.UserAddressRequest) *xorm.Session {
+	ss := d.engine.Table(tblUserAddress)
+	if rq.GetId() != "" {
+		ss.And("id = ?", rq.GetId())
+	}
+	if rq.GetUserId() != "" {
+		ss.And("user_id = ?", rq.GetUserId())
+	}
+	if rq.GetProvince() != "" {
+		ss.And("province = ?", rq.GetProvince())
+	}
+	if rq.GetDistrict() != "" {
+		ss.And("district = ?", rq.GetDistrict())
+	}
+	if rq.GetWard() != "" {
+		ss.And("ward = ?", rq.GetWard())
+	}
+	if rq.GetAddress() != "" {
+		ss.And("address = ?", rq.GetAddress())
+	}
+	if rq.GetIsDefault() != "" {
+		ss.And("is_default = ?", rq.GetIsDefault())
+	}
+	return ss
+}
+
+func (d *DB) ListUserAddress(rq *pb.UserAddressRequest) ([]*pb.UserAddress, error) {
+	ss := d.listUserAddressQuery(rq)
+	if rq.GetLimit() != 0 {
+		ss.Limit(int(rq.GetLimit()), int(rq.GetSkip()*rq.GetLimit()))
+	}
+	userAddresses := make([]*pb.UserAddress, 0)
+	err := ss.Desc("created_at").Find(&userAddresses)
+	if err != nil {
+		return nil, err
+	}
+	return userAddresses, nil
+}
+
+func (d *DB) GetUserAddress(rq *pb.UserAddress) (*pb.UserAddress, error) {
+	userAddress := &pb.UserAddress{
+		Id: rq.GetId(),
+	}
+	ishas, err := d.engine.Get(userAddress)
+	if err != nil {
+		return nil, err
+	}
+	if !ishas {
+		return nil, errors.New(utils.E_not_found_user_address)
+	}
+	return userAddress, nil
+}
+
+func (d *DB) TranCreateUserAddress(req *pb.UserAddress, maxUserAddress int) error {
+	ss := d.engine.NewSession()
+	defer ss.Close()
+	if err := ss.Begin(); err != nil {
+		return err
+	}
+	listAddress, err := d.ListUserAddress(&pb.UserAddressRequest{UserId: req.GetUserId()})
+	if err != nil {
+		ss.Rollback()
+		return err
+	}
+	if len(listAddress) >= maxUserAddress {
+		ss.Rollback()
+		return errors.New(utils.E_max_user_address)
+	}
+	req.IsDefault = "true"
+	req.CreatedAt = time.Now().Unix()
+	if err := d.CreateUserAddress(req); err != nil {
+		ss.Rollback()
+		return err
+	}
+	for _, address := range listAddress {
+		if address.GetId() == req.GetId() {
+			continue
+		}
+		address.IsDefault = "false"
+		address.UpdatedAt = time.Now().Unix()
+		if err := d.UpdateUserAddress(address, &pb.UserAddress{Id: address.GetId()}); err != nil {
+			ss.Rollback()
+			return err
+		}
+	}
+	if err := ss.Commit(); err != nil {
+		return err
+	}
+	return nil
 }

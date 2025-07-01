@@ -15,9 +15,6 @@ func (u *User) CreatePointExchange(ctx context.Context, req *pb.PointExchange) (
 	if req.ReceiverId == "" {
 		return nil, errors.New(utils.E_invalid_receiver_id)
 	}
-	if req.Points <= 0 {
-		return nil, errors.New(utils.E_invalid_points)
-	}
 	
 	req.Id = utils.MakePointExchangeId()
 	req.CreatedAt = time.Now().Unix()
