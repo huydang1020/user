@@ -122,9 +122,11 @@ func (u *User) GetUser(ctx context.Context, req *pb.UserRequest) (*pb.User, erro
 			log.Println("get user point error:", err)
 			return nil, err
 		}
-		user.Point = &pb.UserPoint{
-			Points:      up.Points,
-			TotalPoints: up.TotalPoints,
+		if up != nil {
+			user.Point = &pb.UserPoint{
+				Points:      up.Points,
+				TotalPoints: up.TotalPoints,
+			}
 		}
 	}
 	return user, nil
