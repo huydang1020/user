@@ -796,12 +796,26 @@ func (d *DB) CreateUserAddress(req *pb.UserAddress) error {
 }
 
 func (d *DB) UpdateUserAddress(updated, selector *pb.UserAddress) error {
+	if updated.IsDefault == "true" {
+		userAddress := &pb.UserAddress{UserId: selector.UserId, IsDefault: "true"}
+		_, err := d.engine.Get(userAddress)
+		if err != nil {
+			return err
+		}
+		c, err := d.engine.Update(&pb.UserAddress{IsDefault: "false"}, &pb.UserAddress{Id: userAddress.Id})
+		if err != nil {
+			return err
+		}
+		if c == 0 {
+			return errors.New(utils.E_can_not_update_user_address)
+		}
+	}
 	c, err := d.engine.Update(updated, selector)
 	if err != nil {
 		return err
 	}
 	if c == 0 {
-		log.Println("can_not_update")
+		return errors.New(utils.E_can_not_update_user_address)
 	}
 	return nil
 }
@@ -890,22 +904,13 @@ func (d *DB) TranCreateUserAddress(req *pb.UserAddress, maxUserAddress int) erro
 		ss.Rollback()
 		return errors.New(utils.E_max_user_address)
 	}
-	req.IsDefault = "true"
+	if len(listAddress) <= 0 {
+		req.IsDefault = "true"
+	}
 	req.CreatedAt = time.Now().Unix()
 	if err := d.CreateUserAddress(req); err != nil {
 		ss.Rollback()
 		return err
-	}
-	for _, address := range listAddress {
-		if address.GetId() == req.GetId() {
-			continue
-		}
-		address.IsDefault = "false"
-		address.UpdatedAt = time.Now().Unix()
-		if err := d.UpdateUserAddress(address, &pb.UserAddress{Id: address.GetId()}); err != nil {
-			ss.Rollback()
-			return err
-		}
 	}
 	if err := ss.Commit(); err != nil {
 		return err

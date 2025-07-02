@@ -74,4 +74,5 @@ const (
 	E_invalid_district                = "invalid_district"
 	E_invalid_ward                    = "invalid_ward"
 	E_max_user_address                = "max_user_address"
+	E_can_not_update_user_address     = "can_not_update_user_address"
 )
