@@ -123,10 +123,8 @@ func (u *User) GetUser(ctx context.Context, req *pb.UserRequest) (*pb.User, erro
 			return nil, err
 		}
 		if up != nil {
-			user.Point = &pb.UserPoint{
-				Points:      up.Points,
-				TotalPoints: up.TotalPoints,
-			}
+			user.TotalEarnedPoints = up.TotalPoints
+			user.TotalSpentPoints = up.TotalPoints - up.Points
 		}
 	}
 	return user, nil
@@ -510,5 +508,43 @@ func (u *User) ResetPassword(ctx context.Context, req *pb.User) (*common.Empty, 
 	// Xóa OTP khỏi Redis sau khi sử dụng
 	_ = u.cache.Del(c, keyRedis).Err()
 
+	// Xóa refresh token cũ khỏi Redis để bảo mật
+	refreshTokenKey := fmt.Sprintf("refresh_token_user_id_%s", user.GetId())
+	_ = u.cache.Del(ctx, refreshTokenKey).Err()
+
+	return &common.Empty{}, nil
+}
+
+func (u *User) ChangePassword(ctx context.Context, req *pb.ChangePasswordRequest) (*common.Empty, error) {
+	if req.GetUserId() == "" {
+		return nil, errors.New(utils.E_not_found_user_id)
+	}
+	if req.GetOldPassword() == "" || req.GetNewPassword() == "" {
+		return nil, errors.New(utils.E_invalid_password)
+	}
+
+	user, err := u.Db.GetUser(&pb.UserRequest{Id: req.GetUserId()})
+	if err != nil {
+		return nil, errors.New(utils.E_not_found_user)
+	}
+
+	if err := utils.ComparePassword(user.Password, req.GetOldPassword()); err != nil {
+		return nil, errors.New(utils.E_password_is_incorrect)
+	}
+
+	hashedPassword, err := utils.HashPassword(req.GetNewPassword())
+	if err != nil {
+		log.Println("hash password error:", err)
+		return nil, errors.New(utils.E_internal_error)
+	}
+
+	user.Password = hashedPassword
+	user.UpdatedAt = time.Now().Unix()
+	if err := u.Db.UpdateUser(user, &pb.User{Id: user.GetId()}); err != nil {
+		return nil, errors.New(utils.E_can_not_update)
+	}
+	// Xóa refresh token cũ khỏi Redis để bảo mật
+	refreshTokenKey := fmt.Sprintf("refresh_token_user_id_%s", user.GetId())
+	_ = u.cache.Del(ctx, refreshTokenKey).Err()
 	return &common.Empty{}, nil
 }

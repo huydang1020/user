@@ -906,6 +906,8 @@ func (d *DB) TranCreateUserAddress(req *pb.UserAddress, maxUserAddress int) erro
 	}
 	if len(listAddress) <= 0 {
 		req.IsDefault = "true"
+	} else {
+		req.IsDefault = "false"
 	}
 	req.CreatedAt = time.Now().Unix()
 	if err := d.CreateUserAddress(req); err != nil {
