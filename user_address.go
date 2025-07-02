@@ -27,6 +27,12 @@ func (u *User) CreateUserAddress(ctx context.Context, rq *pb.UserAddress) (*comm
 	if rq.GetAddress() == "" {
 		return nil, errors.New(utils.E_invalid_address)
 	}
+	if rq.GetPhone() == "" {
+		return  nil, errors.New(utils.E_invalid_phone_number)
+	}
+	if rq.GetFullName() == "" {
+		return  nil, errors.New(utils.E_invalid_fullname)
+	}
 	maxUserAddress, err := strconv.Atoi(config.MaxUserAddress)
 	if err != nil {
 		return nil, err
