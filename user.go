@@ -543,8 +543,5 @@ func (u *User) ChangePassword(ctx context.Context, req *pb.ChangePasswordRequest
 	if err := u.Db.UpdateUser(user, &pb.User{Id: user.GetId()}); err != nil {
 		return nil, errors.New(utils.E_can_not_update)
 	}
-	// Xóa refresh token cũ khỏi Redis để bảo mật
-	refreshTokenKey := fmt.Sprintf("refresh_token_user_id_%s", user.GetId())
-	_ = u.cache.Del(ctx, refreshTokenKey).Err()
 	return &common.Empty{}, nil
 }
