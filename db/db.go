@@ -868,7 +868,7 @@ func (d *DB) ListUserAddress(rq *pb.UserAddressRequest) ([]*pb.UserAddress, erro
 		ss.Limit(int(rq.GetLimit()), int(rq.GetSkip()*rq.GetLimit()))
 	}
 	userAddresses := make([]*pb.UserAddress, 0)
-	err := ss.Desc("created_at").Find(&userAddresses)
+	err := ss.OrderBy("is_default DESC, created_at DESC").Find(&userAddresses)
 	if err != nil {
 		return nil, err
 	}
