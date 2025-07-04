@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
+	"os"
 	"strconv"
 
 	"github.com/huyshop/header/common"
@@ -28,10 +31,10 @@ func (u *User) CreateUserAddress(ctx context.Context, rq *pb.UserAddress) (*comm
 		return nil, errors.New(utils.E_invalid_address)
 	}
 	if rq.GetPhone() == "" {
-		return  nil, errors.New(utils.E_invalid_phone_number)
+		return nil, errors.New(utils.E_invalid_phone_number)
 	}
 	if rq.GetFullName() == "" {
-		return  nil, errors.New(utils.E_invalid_fullname)
+		return nil, errors.New(utils.E_invalid_fullname)
 	}
 	maxUserAddress, err := strconv.Atoi(config.MaxUserAddress)
 	if err != nil {
@@ -65,6 +68,27 @@ func (u *User) DeleteUserAddress(ctx context.Context, rq *pb.UserAddress) (*comm
 	return &common.Empty{}, nil
 }
 
+type Province struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type District struct {
+	Id           string `json:"id"`
+	Name         string `json:"name"`
+	ProvinceId   string `json:"province_id"`
+	ProvinceName string `json:"province_name"`
+}
+
+type Ward struct {
+	Id           string `json:"id"`
+	Name         string `json:"name"`
+	DistrictId   string `json:"district_id"`
+	DistrictName string `json:"district_name"`
+	ProvinceId   string `json:"province_id"`
+	ProvinceName string `json:"province_name"`
+}
+
 func (u *User) ListUserAddress(ctx context.Context, rq *pb.UserAddressRequest) (*pb.UserAddresses, error) {
 	log.Println("rq:", rq)
 	if rq.GetUserId() == "" {
@@ -73,6 +97,55 @@ func (u *User) ListUserAddress(ctx context.Context, rq *pb.UserAddressRequest) (
 	addresses, err := u.Db.ListUserAddress(rq)
 	if err != nil {
 		return nil, err
+	}
+
+	provinces := []Province{}
+	districts := []District{}
+	wards := []Ward{}
+
+	province, err := os.ReadFile("assets/province.json")
+	if err != nil {
+		return nil, err
+	}
+	district, err := os.ReadFile("assets/district.json")
+	if err != nil {
+		return nil, err
+	}
+	ward, err := os.ReadFile("assets/ward.json")
+	if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(province, &provinces); err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(district, &districts); err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(ward, &wards); err != nil {
+		return nil, err
+	}
+
+	for _, address := range addresses {
+		provinceName := ""
+		districtName := ""
+		wardName := ""
+		for _, province := range provinces {
+			if province.Id == address.Province {
+				provinceName = province.Name
+			}
+		}
+		for _, district := range districts {
+			if district.Id == address.District {
+				districtName = district.Name
+			}
+		}
+		for _, ward := range wards {
+			if ward.Id == address.Ward {
+				wardName = ward.Name
+			}
+		}
+		address.FullAddress = fmt.Sprintf("%s, %s, %s, %s", address.Address, wardName, districtName, provinceName)
 	}
 	return &pb.UserAddresses{UserAddresses: addresses}, nil
 }
