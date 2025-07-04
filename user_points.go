@@ -11,17 +11,17 @@ import (
 )
 
 func (u *User) GetUserPoint(ctx context.Context, req *pb.UserPointRequest) (*pb.UserPoint, error) {
-	if req.Id == "" {
-		return nil, errors.New(utils.E_not_found_id)
+	if req.UserId == "" {
+		return nil, errors.New(utils.E_not_found_user_id)
 	}
-	exits, err := u.Db.IsExistUserPoint(req.Id)
+	exits, err := u.Db.IsExistUserPoint(req.UserId)
 	if err != nil {
 		log.Println("IsExistUserPoint error:", err)
 		return nil, err
 	}
 	if !exits {
 		err := u.Db.CreateUserPoint(&pb.UserPoint{
-			UserId:    req.Id,
+			UserId:    req.UserId,
 			CreatedAt: time.Now().Unix(),
 		})
 		if err != nil {
@@ -29,7 +29,7 @@ func (u *User) GetUserPoint(ctx context.Context, req *pb.UserPointRequest) (*pb.
 			return nil, err
 		}
 	}
-	userpoint, err := u.Db.GetUserPoint(&pb.UserPoint{UserId: req.Id})
+	userpoint, err := u.Db.GetUserPoint(&pb.UserPoint{UserId: req.UserId})
 	if err != nil {
 		log.Println("GetUserPoint error:", err)
 		return nil, err

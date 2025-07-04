@@ -244,11 +244,11 @@ func (d *DB) IsExistUserPoint(id string) (bool, error) {
 }
 
 func (d *DB) listUserPointQuery(rq *pb.UserPointRequest) *xorm.Session {
-	ss := d.engine.Table(tblUser)
-	if len(rq.GetIds()) > 0 {
-		ss.In("id", rq.GetIds())
-	} else if rq.Id != "" {
-		ss.And("id = ?", rq.GetId())
+	ss := d.engine.Table(tblUserPoint)
+	if len(rq.GetUserIds()) > 0 {
+		ss.In("user_id", rq.GetUserIds())
+	} else if rq.GetUserId() != "" {
+		ss.And("user_id = ?", rq.GetUserId())
 	}
 	return ss
 }

@@ -251,7 +251,7 @@ func (u *User) SignInCustomer(ctx context.Context, req *pb.User) (*pb.SignInResp
 		return nil, err
 	}
 	user.Password = ""
-	up, err := u.GetUserPoint(ctx, &pb.UserPointRequest{Id: user.GetId()})
+	up, err := u.GetUserPoint(ctx, &pb.UserPointRequest{UserId: user.GetId()})
 	if err != nil {
 		log.Println("get user point error:", err)
 		return nil, err
