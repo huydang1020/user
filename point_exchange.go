@@ -15,7 +15,7 @@ func (u *User) CreatePointExchange(ctx context.Context, req *pb.PointExchange) (
 	if req.ReceiverId == "" {
 		return nil, errors.New(utils.E_invalid_receiver_id)
 	}
-	
+
 	req.Id = utils.MakePointExchangeId()
 	req.CreatedAt = time.Now().Unix()
 	if err := u.Db.TranCreatePointExchange(req); err != nil {
@@ -42,5 +42,18 @@ func (u *User) ListPointExchange(ctx context.Context, req *pb.PointExchangeReque
 		log.Println("ListPointExchange err: ", err)
 		return nil, err
 	}
-	return &pb.PointExchanges{PointExchanges: list}, nil
+	for _, v := range list {
+		user, err := u.Db.GetUser(&pb.UserRequest{Id: v.ReceiverId})
+		if err != nil {
+			log.Println("GetUser err: ", err)
+			return nil, err
+		}
+		v.Receiver = user
+	}
+	count, err := u.Db.CountPointExchange(req)
+	if err != nil {
+		log.Println("CountPointExchange err: ", err)
+		return nil, err
+	}
+	return &pb.PointExchanges{PointExchanges: list, Total: int32(count)}, nil
 }

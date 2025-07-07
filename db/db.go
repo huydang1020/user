@@ -299,6 +299,11 @@ func (d *DB) GetPointExchange(req *pb.PointExchange) (*pb.PointExchange, error) 
 	return req, nil
 }
 
+func (d *DB) CountPointExchange(rq *pb.PointExchangeRequest) (int64, error) {
+	ss := d.listPointExchangeQuery(rq)
+	return ss.Count()
+}
+
 func (d *DB) listPointExchangeQuery(rq *pb.PointExchangeRequest) *xorm.Session {
 	ss := d.engine.Table(tblPointExchange)
 	if len(rq.GetIds()) > 0 {

@@ -42,6 +42,7 @@ type IDatabase interface {
 
 	CreatePointExchange(req *pb.PointExchange) error
 	GetPointExchange(req *pb.PointExchange) (*pb.PointExchange, error)
+	CountPointExchange(rq *pb.PointExchangeRequest) (int64, error)
 	ListPointExchange(req *pb.PointExchangeRequest) ([]*pb.PointExchange, error)
 	TranCreatePointExchange(req *pb.PointExchange) error
 
