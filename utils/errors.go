@@ -75,4 +75,6 @@ const (
 	E_invalid_ward                    = "invalid_ward"
 	E_max_user_address                = "max_user_address"
 	E_can_not_update_user_address     = "can_not_update_user_address"
+	E_email_already_in_use            = "email_already_in_use"
+	E_phone_number_already_in_use     = "phone_number_already_in_use"
 )

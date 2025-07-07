@@ -31,6 +31,8 @@ type IDatabase interface {
 	UpdateUser(updator, selector *pb.User) error
 	DeleteUser(id string) error
 	IsUserExisted(u *pb.User) bool
+	FindUserWithPhone(phone string) (*pb.User, error)
+	FindUserWithEmail(email string) (*pb.User, error)
 
 	CreateUserPoint(req *pb.UserPoint) error
 	UpdateUserPoint(updator, selector *pb.UserPoint) error

@@ -159,7 +159,20 @@ func (u *User) UpdateUser(ctx context.Context, req *pb.User) (*common.Empty, err
 	if err != nil {
 		return nil, errors.New(utils.E_can_not_update)
 	}
-
+	if req.PhoneNumber != "" {
+		existedUser, _ := u.Db.FindUserWithPhone(req.PhoneNumber)
+		if existedUser != nil && existedUser.Id != req.GetId() {
+			return nil, errors.New(utils.E_phone_number_already_in_use)
+		}
+		user.PhoneNumber = req.PhoneNumber
+	}
+	if req.Email != "" {
+		existedUser, _ := u.Db.FindUserWithEmail(req.Email)
+		if existedUser != nil && existedUser.Id != req.GetId() {
+			return nil, errors.New(utils.E_email_already_in_use)
+		}
+		user.Email = req.Email
+	}
 	if req.FullName != "" {
 		user.FullName = req.FullName
 	}
