@@ -131,9 +131,9 @@ func (u *User) GetUser(ctx context.Context, req *pb.UserRequest) (*pb.User, erro
 }
 
 func (u *User) ListUsers(ctx context.Context, req *pb.UserRequest) (*pb.Users, error) {
-	if req.GetLimit() == 0 || req.GetLimit() > DEFAULT_LIMIT {
-		req.Limit = DEFAULT_LIMIT
-	}
+	// if req.GetLimit() == 0 || req.GetLimit() > DEFAULT_LIMIT {
+	// 	req.Limit = DEFAULT_LIMIT
+	// }
 	users, err := u.Db.ListUsers(req)
 	if err != nil {
 		return nil, err

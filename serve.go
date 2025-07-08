@@ -164,6 +164,11 @@ func HTTPServe(p *User) error {
 
 	})
 
+	r1.GET("/test-cron", func(c *gin.Context) {
+		log.Println("runn test cron")
+		c.JSON(200, gin.H{"message": "test-cron"})
+	})
+
 	g.Run(":" + config.HttpPort)
 	return nil
 }

@@ -58,6 +58,15 @@ func (d *DB) listUsersQuery(rq *pb.UserRequest) *xorm.Session {
 	if rq.GetState() != "" {
 		ss.And("state = ?", rq.GetState())
 	}
+	if rq.GetEmail() != "" {
+		ss.And("email = ?", rq.GetEmail())
+	}
+	if rq.GetFrom() != 0 {
+		ss.And("created_at >= ?", rq.GetFrom())
+	}
+	if rq.GetTo() != 0 {
+		ss.And("created_at <= ?", rq.GetTo())
+	}
 	return ss
 }
 
