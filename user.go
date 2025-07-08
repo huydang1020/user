@@ -179,7 +179,7 @@ func (u *User) UpdateUser(ctx context.Context, req *pb.User) (*common.Empty, err
 	if req.Avatar != "" {
 		user.Avatar = req.Avatar
 	}
-	if req.Birthday != 0 {
+	if user.Birthday == 0 {
 		user.Birthday = req.Birthday
 	}
 	user.UpdatedAt = time.Now().Unix()
