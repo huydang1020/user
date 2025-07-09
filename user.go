@@ -123,7 +123,7 @@ func (u *User) GetUser(ctx context.Context, req *pb.UserRequest) (*pb.User, erro
 			return nil, err
 		}
 		if up != nil {
-			user.TotalEarnedPoints = up.TotalPoints
+			user.TotalEarnedPoints = up.Points
 			user.TotalSpentPoints = up.TotalPoints - up.Points
 		}
 	}
