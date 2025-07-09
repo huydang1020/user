@@ -278,6 +278,58 @@ func (u *User) SignInCustomer(ctx context.Context, req *pb.User) (*pb.SignInResp
 	}, nil
 }
 
+func (u *User) SignInAfterVerifyOtp(ctx context.Context, req *pb.User) (*pb.SignInResponse, error) {
+	if req.GetUsername() == "" {
+		return nil, errors.New(utils.E_username_is_incorrect)
+	}
+	user, err := u.Db.GetUser(&pb.UserRequest{PhoneNumber: req.GetUsername()})
+	if err != nil {
+		user, err = u.Db.GetUser(&pb.UserRequest{Email: req.GetUsername()})
+		if err != nil {
+			return nil, errors.New(utils.E_not_found_username)
+		}
+	}
+	partner := &pb.Partner{}
+	if user.PartnerId != "" {
+		partner, err = u.Db.GetPartner(&pb.PartnerRequest{Id: user.GetPartnerId()})
+		if err != nil {
+			return nil, err
+		}
+	}
+	exprAct, _ := strconv.Atoi(config.JwtExpireAccessToken)
+	exprRft, _ := strconv.Atoi(config.JwtExpireRefreshToken)
+	access_token, err := jwt.GenerateAccessToken(user, partner, time.Duration(exprAct), config.JwtSecretKey)
+	if err != nil {
+		log.Println("generate access token error:", err)
+		return nil, err
+	}
+	refresh_token, err := jwt.GenerateRefreshToken(user, partner, time.Duration(exprRft), config.JwtSecretKey)
+	if err != nil {
+		log.Println("generate refresh token error:", err)
+		return nil, err
+	}
+	c, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	keyRedis := fmt.Sprintf("refresh_token_user_id_%s", user.GetId())
+	if err := u.cache.Set(c, keyRedis, refresh_token, time.Duration(exprRft)*time.Minute).Err(); err != nil {
+		log.Println("set data redis error:", err)
+		return nil, err
+	}
+	user.Password = ""
+	up, err := u.GetUserPoint(ctx, &pb.UserPointRequest{UserId: user.GetId()})
+	if err != nil {
+		log.Println("get user point error:", err)
+		return nil, err
+	}
+	user.Point = &pb.UserPoint{
+		Points: up.Points,
+	}
+	return &pb.SignInResponse{
+		User:        user,
+		AccessToken: access_token,
+	}, nil
+}
+
 func (u *User) CreateCustomer(ctx context.Context, req *pb.User) (*common.Empty, error) {
 	if u.Db.IsUserExisted(&pb.User{PhoneNumber: req.GetPhoneNumber(), Email: req.GetEmail()}) {
 		user, err := u.Db.GetUser(&pb.UserRequest{PhoneNumber: req.GetPhoneNumber()})
@@ -372,7 +424,7 @@ func (u *User) SendVerifyOtp(ctx context.Context, req *pb.User) (*common.TTL, er
 		return nil, errors.New(utils.E_email_activated)
 	}
 	keyRedis := fmt.Sprintf("verify_email:%s", user.GetEmail())
-	c, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	c, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	_, err = u.cache.Get(c, keyRedis).Result()
 	if err == redis.Nil {

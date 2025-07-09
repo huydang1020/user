@@ -74,12 +74,23 @@ func ComparePassword(hash, password string) error {
 func GenerateVerifyOtp() string {
 	code := ""
 	for i := 0; i < 6; i++ {
-		n, err := rand.Int(rand.Reader, big.NewInt(10)) // số từ 0-9
-		if err != nil {
-			log.Println("error generating random number:", err)
-			return ""
+		if i == 0 {
+			// Số đầu tiên từ 1-9 (không bao gồm 0)
+			n, err := rand.Int(rand.Reader, big.NewInt(9)) // số từ 0-8
+			if err != nil {
+				log.Println("error generating random number:", err)
+				return ""
+			}
+			code += fmt.Sprintf("%d", n.Int64()+1) // cộng 1 để có số từ 1-9
+		} else {
+			// Các số tiếp theo từ 0-9
+			n, err := rand.Int(rand.Reader, big.NewInt(10)) // số từ 0-9
+			if err != nil {
+				log.Println("error generating random number:", err)
+				return ""
+			}
+			code += fmt.Sprintf("%d", n.Int64())
 		}
-		code += fmt.Sprintf("%d", n)
 	}
 	return code
 }
