@@ -10,12 +10,15 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/rs/xid"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/text/unicode/norm"
 )
 
 func MakeUserId() string {
@@ -208,4 +211,27 @@ func SendEmailPartner(apiKey, url, to, subject, content string) error {
 
 	fmt.Println("Email Status:", resp.Status)
 	return nil
+}
+
+func ToSlug(input string) string {
+	// Normalize để tách dấu ra
+	t := norm.NFD.String(input)
+	slug := strings.Builder{}
+	for _, r := range t {
+		switch {
+		case unicode.Is(unicode.Mn, r):
+			continue // bỏ dấu
+		case r == 'đ':
+			slug.WriteRune('d')
+		case r == 'Đ':
+			slug.WriteRune('d')
+		case unicode.IsLetter(r) || unicode.IsNumber(r):
+			slug.WriteRune(unicode.ToLower(r))
+		default:
+			slug.WriteRune(' ')
+		}
+	}
+	// Thay nhiều dấu cách thành dấu gạch ngang
+	re := regexp.MustCompile(`\s+`)
+	return re.ReplaceAllString(strings.TrimSpace(slug.String()), "-")
 }

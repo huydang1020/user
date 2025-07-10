@@ -30,6 +30,7 @@ func (u *User) CreateStore(ctx context.Context, store *pb.Store) (*common.Empty,
 	store.Id = utils.MakeStoreId()
 	store.State = pb.Store_active.String()
 	store.CreatedAt = time.Now().Unix()
+	store.Slug = utils.ToSlug(store.Name)
 	if err := u.Db.CreateStore(store); err != nil {
 		return nil, err
 	}
@@ -40,6 +41,7 @@ func (u *User) UpdateStore(ctx context.Context, req *pb.Store) (*common.Empty, e
 	if req.GetId() == "" {
 		return nil, errors.New(utils.E_not_found_id)
 	}
+	req.Slug = utils.ToSlug(req.Name)
 	req.UpdatedAt = time.Now().Unix()
 	if err := u.Db.UpdateStore(req, &pb.Store{Id: req.GetId()}); err != nil {
 		return nil, err
