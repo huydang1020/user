@@ -10,7 +10,7 @@ import (
 
 func Test_convertSlug(t *testing.T) {
 	d := DB{}
-	if err := d.ConnectDb("root:hanhuquynh@tcp(localhost:3306)", "user"); err != nil {
+	if err := d.ConnectDb("root:123456@tcp(localhost:3306)", "user"); err != nil {
 		log.Println(err)
 		return
 	}

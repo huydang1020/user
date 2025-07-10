@@ -485,6 +485,9 @@ func (d *DB) listStoreQuery(rq *pb.StoreRequest) *xorm.Session {
 	} else if rq.GetPartnerId() != "" {
 		ss.And("partner_id = ?", rq.GetPartnerId())
 	}
+	if rq.GetSlug() != "" {
+		ss.And("slug = ?", rq.GetSlug())
+	}
 	return ss
 }
 
