@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/huyshop/header/common"
@@ -84,6 +87,51 @@ func (u *User) GetStore(ctx context.Context, rq *pb.StoreRequest) (*pb.Store, er
 	if err != nil {
 		return nil, err
 	}
+	provinces := []Province{}
+	districts := []District{}
+	wards := []Ward{}
+
+	province, err := os.ReadFile("assets/province.json")
+	if err != nil {
+		return nil, err
+	}
+	district, err := os.ReadFile("assets/district.json")
+	if err != nil {
+		return nil, err
+	}
+	ward, err := os.ReadFile("assets/ward.json")
+	if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(province, &provinces); err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(district, &districts); err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(ward, &wards); err != nil {
+		return nil, err
+	}
+	provinceName := ""
+	districtName := ""
+	wardName := ""
+	for _, province := range provinces {
+		if province.Id == store.Province {
+			provinceName = province.Name
+		}
+	}
+	for _, district := range districts {
+		if district.Id == store.District {
+			districtName = district.Name
+		}
+	}
+	for _, ward := range wards {
+		if ward.Id == store.Ward {
+			wardName = ward.Name
+		}
+	}
+	store.FullAddress = fmt.Sprintf("%s, %s, %s, %s", store.Address, wardName, districtName, provinceName)
 	return store, nil
 }
 

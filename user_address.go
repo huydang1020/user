@@ -158,6 +158,51 @@ func (u *User) GetUserAddress(ctx context.Context, rq *pb.UserAddress) (*pb.User
 	if err != nil {
 		return nil, err
 	}
+	provinces := []Province{}
+	districts := []District{}
+	wards := []Ward{}
 
+	province, err := os.ReadFile("assets/province.json")
+	if err != nil {
+		return nil, err
+	}
+	district, err := os.ReadFile("assets/district.json")
+	if err != nil {
+		return nil, err
+	}
+	ward, err := os.ReadFile("assets/ward.json")
+	if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(province, &provinces); err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(district, &districts); err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(ward, &wards); err != nil {
+		return nil, err
+	}
+
+	provinceName := ""
+	districtName := ""
+	wardName := ""
+	for _, province := range provinces {
+		if province.Id == address.Province {
+			provinceName = province.Name
+		}
+	}
+	for _, district := range districts {
+		if district.Id == address.District {
+			districtName = district.Name
+		}
+	}
+	for _, ward := range wards {
+		if ward.Id == address.Ward {
+			wardName = ward.Name
+		}
+	}
+	address.FullAddress = fmt.Sprintf("%s, %s, %s, %s", address.Address, wardName, districtName, provinceName)
 	return address, nil
 }
