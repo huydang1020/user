@@ -506,7 +506,8 @@ func (d *DB) ListStore(rq *pb.StoreRequest) ([]*pb.Store, error) {
 
 func (d *DB) GetStore(rq *pb.StoreRequest) (*pb.Store, error) {
 	store := &pb.Store{
-		Id: rq.GetId(),
+		Id:   rq.GetId(),
+		Slug: rq.GetSlug(),
 	}
 	ishas, err := d.engine.Get(store)
 	if err != nil {
