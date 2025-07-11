@@ -182,6 +182,9 @@ func (u *User) UpdateUser(ctx context.Context, req *pb.User) (*common.Empty, err
 	if user.Birthday == 0 {
 		user.Birthday = req.Birthday
 	}
+	if req.State != "" {
+		user.State = req.State
+	}
 	user.UpdatedAt = time.Now().Unix()
 
 	if err := u.Db.UpdateUser(user, &pb.User{Id: user.GetId()}); err != nil {

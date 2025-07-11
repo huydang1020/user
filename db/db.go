@@ -578,6 +578,12 @@ func (d *DB) listPartnerQuery(rq *pb.PartnerRequest) *xorm.Session {
 	if rq.GetState() != "" {
 		ss.And("state = ?", rq.GetState())
 	}
+	if rq.GetFrom() > 0 {
+		ss.And("created_at >= ?", rq.GetFrom())
+	}
+	if rq.GetTo() > 0 {
+		ss.And("created_at <= ?", rq.GetTo())
+	}
 	return ss
 }
 
