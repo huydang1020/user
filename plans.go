@@ -75,9 +75,6 @@ func (u *User) UpdatePlan(ctx context.Context, req *pb.Plan) (*common.Empty, err
 	if err != nil {
 		return nil, err
 	}
-	if plan.GetState() != pb.Plan_active.String() {
-		return nil, errors.New(utils.E_invalid_state)
-	}
 	req.UpdatedAt = time.Now().Unix()
 	if err := u.Db.UpdatePlan(req, &pb.Plan{Id: req.Id}); err != nil {
 		return nil, err
