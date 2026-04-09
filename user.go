@@ -99,7 +99,7 @@ func (u *User) CreateUser(ctx context.Context, req *pb.User) (*common.Empty, err
 	req.Id = utils.MakeUserId()
 	req.State = pb.User_active.String()
 	req.CreatedAt = time.Now().Unix()
-	if err := u.Db.CreateUser(req); err != nil {
+	if err := u.Db.TranCreateNewUser(req); err != nil {
 		log.Println("create user err:", err)
 		return nil, err
 	}
