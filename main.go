@@ -34,28 +34,49 @@ var config *Configs
 
 func init() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading env:", err)
+
+	if _, err := os.Stat(".env"); err == nil {
+		err := godotenv.Load()
+		if err != nil {
+			log.Println("Warning: Error loading .env file:", err)
+		} else {
+			log.Println("Loaded .env file for local development")
+		}
+	} else {
+		log.Println("No .env file found, using system environment variables")
 	}
+
 	config = &Configs{
-		GRPCPort:              os.Getenv("GRPC_PORT"),
-		DBPath:                os.Getenv("DB_PATH"),
-		DBName:                os.Getenv("DB_NAME"),
-		HttpPort:              os.Getenv("HTTP_PORT"),
-		JwtSecretKey:          os.Getenv("JWT_SECRET_KEY"),
-		JwtExpireAccessToken:  os.Getenv("JWT_EXPIRE_ACCESS_TOKEN"),
-		JwtExpireRefreshToken: os.Getenv("JWT_EXPIRE_REFRESH_TOKEN"),
-		RedisAddr:             os.Getenv("REDIS_ADDR"),
-		RedisPassword:         os.Getenv("REDIS_PASSWORD"),
-		RedisDb:               os.Getenv("REDIS_DB"),
-		MailKey:               os.Getenv("BREVO_API_KEY"),
-		MailUrl:               os.Getenv("BREVO_URL"),
-		MaxUserAddress:        os.Getenv("MAX_USER_ADDRESS"),
+		GRPCPort:              getEnv("GRPC_PORT", "6000"),
+		DBPath:                getEnv("DB_PATH", "root:password@tcp(localhost:3306)"),
+		DBName:                getEnv("DB_NAME", "user"),
+		HttpPort:              getEnv("HTTP_PORT", "6001"),
+		JwtSecretKey:          getEnv("JWT_SECRET_KEY", ""),
+		JwtExpireAccessToken:  getEnv("JWT_EXPIRE_ACCESS_TOKEN", "30"),
+		JwtExpireRefreshToken: getEnv("JWT_EXPIRE_REFRESH_TOKEN", "129600"),
+		RedisAddr:             getEnv("REDIS_ADDR", "localhost:6379"),
+		RedisPassword:         getEnv("REDIS_PASSWORD", ""),
+		RedisDb:               getEnv("REDIS_DB", "0"),
+		MailKey:               getEnv("BREVO_API_KEY", ""),
+		MailUrl:               getEnv("BREVO_URL", ""),
+		MaxUserAddress:        getEnv("MAX_USER_ADDRESS", "5"),
 	}
 }
 
+// Helper function để lấy env với default value
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
 func startApp(ctx *cli.Context) error {
+	log.Printf("Starting user service with config:")
+	log.Printf("  GRPC Port: %s", config.GRPCPort)
+	log.Printf("  DB Path: %s", config.DBPath)
+	log.Printf("  DB Name: %s", config.DBName)
+	log.Printf("  Redis Addr: %s", config.RedisAddr)
 	u, err := NewUser(config)
 	if err != nil {
 		log.Fatal(err)
