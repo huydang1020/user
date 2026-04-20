@@ -1,0 +1,109 @@
+# User Service
+
+Service `user` là một vi dịch vụ (microservice) trong hệ thống `huyshop`, chịu trách nhiệm quản lý thông tin người dùng, xác thực (Authentication), quản lý địa chỉ, điểm thưởng, và các thông tin liên quan đến đối tác/cửa hàng. 
+
+Service này cung cấp cả giao tiếp qua **HTTP (REST API)** và **gRPC**.
+
+## Công nghệ sử dụng
+
+- **Ngôn ngữ:** Go (Golang) 1.23
+- **Web Framework:** [Gin Web Framework](https://github.com/gin-gonic/gin) cho HTTP server
+- **RPC:** [gRPC](https://grpc.io/)
+- **Cơ sở dữ liệu:** MySQL (sử dụng ORM [XORM](https://xorm.io/))
+- **Cache & Message Broker:** Redis (sử dụng `go-redis/redis/v8`)
+- **Xác thực:** JWT (JSON Web Tokens)
+- **Gửi Email:** Tích hợp API của Brevo (Sendinblue)
+- **CLI Framework:** [urfave/cli/v2](https://github.com/urfave/cli)
+
+## Cấu trúc dự án
+
+- `main.go`: Điểm bắt đầu (Entry point) của ứng dụng, khởi tạo cấu hình, kết nối và các worker chạy ngầm.
+- `cmd/` (nếu có): Các lệnh CLI.
+- `db/`: Chứa các logic liên quan đến kết nối và khởi tạo cơ sở dữ liệu.
+- `jwt/`: Xử lý tạo và xác thực token JWT.
+- Các file logic chính (`user.go`, `user_address.go`, `user_points.go`, `store.go`, `partner.go`,...): Xử lý logic nghiệp vụ cho từng domain cụ thể.
+- `utils/`: Các hàm hỗ trợ dùng chung.
+
+## Biến môi trường (.env)
+
+Service sử dụng file `.env` để quản lý cấu hình. Bạn có thể copy từ `.env.example` sang `.env` và điền các thông tin cần thiết:
+
+```env
+# Server
+GRPC_PORT=6000
+HTTP_PORT=6001
+
+# Database
+DB_PATH=root:password@tcp(localhost:3306)
+DB_NAME=user
+
+# JWT Authentication
+JWT_SECRET_KEY=your_secret_key
+JWT_EXPIRE_ACCESS_TOKEN=30 # Thời gian sống của Access Token (phút/giờ tuỳ cấu hình nội bộ)
+JWT_EXPIRE_REFRESH_TOKEN=129600
+
+# Redis
+REDIS_ADDR=localhost:6379
+REDIS_PASSWORD=
+REDIS_DB=0
+
+# Email Integration (Brevo)
+BREVO_API_KEY=your_brevo_api_key
+BREVO_URL=https://api.brevo.com/v3/smtp/email
+
+# Application Logic Configs
+MAX_USER_ADDRESS=5
+SELLER_ID=
+VNP_HASH_SECRET=
+VNP_TMNCODE=
+VNP_URL=
+TIME_LIVE_ORDER_REDIS=
+```
+
+## Các lệnh quản lý (CLI Commands)
+
+Dự án sử dụng `urfave/cli` để tạo các tiện ích dòng lệnh, hỗ trợ việc chạy service và cài đặt cơ sở dữ liệu.
+
+### 1. Khởi tạo cơ sở dữ liệu (`createDb`)
+
+Lệnh này sẽ tự động kết nối đến MySQL thông qua `DB_PATH` và tạo các bảng cần thiết dựa trên các Model (Struct) đã định nghĩa bằng XORM.
+
+```bash
+go run main.go createDb
+```
+
+### 2. Chạy Service (`start`)
+
+Lệnh này sẽ khởi động toàn bộ service bao gồm:
+- **HTTP Server:** Lắng nghe trên `HTTP_PORT`.
+- **gRPC Server:** Lắng nghe trên `GRPC_PORT`.
+- **Email Worker:** Goroutine chạy ngầm lắng nghe channel để gửi OTP xác thực email.
+- **Memory Manager (GC):** Tự động giải phóng bộ nhớ hệ điều hành định kỳ mỗi 15 phút.
+
+```bash
+go run main.go start
+```
+
+## Tính năng nổi bật
+
+1. **Dual Protocol (gRPC & HTTP):** Phục vụ linh hoạt cho cả liên lạc nội bộ giữa các microservices (gRPC) và các client bên ngoài (HTTP/REST).
+2. **Quản lý đa luồng (Goroutines):** Tác vụ gửi email xác thực (OTP) được đẩy vào một Go Channel và xử lý bất đồng bộ để không làm block main thread.
+3. **Quản lý bộ nhớ:** Tích hợp tính năng gọi `runtime.GC()` và `debug.FreeOSMemory()` định kỳ để tối ưu hóa việc sử dụng RAM trong quá trình chạy dài hạn.
+4. **Tích hợp thanh toán:** Sẵn sàng các biến môi trường cho VNPAY.
+
+## Hướng dẫn chạy môi trường phát triển (Local)
+
+1. Clone repository về máy.
+2. Sao chép `.env.example` thành `.env` và cấu hình kết nối Database, Redis, Brevo API.
+3. Cài đặt các thư viện:
+   ```bash
+   go mod download
+   ```
+4. Khởi tạo database lần đầu:
+   ```bash
+   go run *.go createDb
+   ```
+5. Chạy service:
+   ```bash
+   go run *.go start
+   ```
