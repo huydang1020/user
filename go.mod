@@ -2,7 +2,7 @@ module github.com/huyshop/user
 
 go 1.23.7
 
-replace github.com/huyshop/header => ../header
+// replace github.com/huyshop/header => ../header
 
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
